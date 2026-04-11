@@ -1,16 +1,13 @@
 import Database from 'better-sqlite3';
+import { createConstituentsSchema } from './constituents-schema.js';
+import { createShillerSchema } from './shiller-schema.js';
 
 export const createSchema = (db: Database.Database) => {
-  // S&P 500 constituents
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS constituents (
-      id INTEGER PRIMARY KEY,
-      symbol TEXT UNIQUE NOT NULL,
-      companyName TEXT NOT NULL,
-      sector TEXT NOT NULL,
-      addedDate TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+  // S&P 500 constituents (GICS)
+  createConstituentsSchema(db);
+
+  // Shiller historical S&P 500 P/E data
+  createShillerSchema(db);
 
   // Daily stock fundamentals
   db.exec(`
