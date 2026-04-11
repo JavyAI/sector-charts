@@ -3,23 +3,23 @@ import { StockFundamental, SectorMetric } from '../types.js';
 
 export class SectorService {
   /**
-   * Calculates cap-weighted average P/E ratio.
-   * Formula: sum(P/E * market cap) / total market cap
+   * Calculates earnings-weighted average P/E ratio.
+   * Formula: Total Market Cap / Total Earnings, where Earnings = Market Cap / PE.
    * Skips stocks where peRatio is null or marketCap <= 0.
    * Returns 0 if no valid stocks.
    */
   calculateWeightedPeRatio(stocks: StockFundamental[]): number {
-    let weightedSum = 0;
     let totalMarketCap = 0;
+    let totalEarnings = 0;
 
     for (const stock of stocks) {
       if (stock.peRatio === null || stock.marketCap <= 0) continue;
-      weightedSum += stock.peRatio * stock.marketCap;
       totalMarketCap += stock.marketCap;
+      totalEarnings += stock.marketCap / stock.peRatio;
     }
 
-    if (totalMarketCap === 0) return 0;
-    return weightedSum / totalMarketCap;
+    if (totalEarnings === 0) return 0;
+    return totalMarketCap / totalEarnings;
   }
 
   /**

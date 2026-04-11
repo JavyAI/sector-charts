@@ -36,9 +36,9 @@ describe('SectorService', () => {
         { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_000_000_000_000, peRatio: 30, eps: 6, shares: 15_000_000_000 },
         { symbol: 'MSFT', companyName: 'Microsoft', marketCap: 2_500_000_000_000, peRatio: 35, eps: 10, shares: 7_500_000_000 },
       ];
-      // (30 * 3T + 35 * 2.5T) / (3T + 2.5T) = (90T + 87.5T) / 5.5T ≈ 32.27
+      // 5.5T / (3T/30 + 2.5T/35) = 5.5T / (0.1T + 0.07143T) ≈ 32.08
       const result = service.calculateWeightedPeRatio(stocks);
-      expect(result).toBeCloseTo(32.27, 1);
+      expect(result).toBeCloseTo(32.08, 1);
     });
 
     it('returns 0 when stock has null peRatio', () => {
@@ -106,8 +106,8 @@ describe('SectorService', () => {
       const metric = service.aggregateToSector('2024-01-15', 'Technology', stocks);
 
       // weighted P/E uses only AAPL and MSFT (GOOG has null P/E)
-      // (30 * 3T + 35 * 2.5T) / (3T + 2.5T) = (90T + 87.5T) / 5.5T ≈ 32.27 → rounds to 32.3
-      expect(metric.weightedPeRatio).toBe(32.3);
+      // 5.5T / (3T/30 + 2.5T/35) = 5.5T / 0.17143T ≈ 32.08 → rounds to 32.1
+      expect(metric.weightedPeRatio).toBe(32.1);
       // equal weight: (30 + 35) / 2 = 32.5
       expect(metric.equalWeightPeRatio).toBe(32.5);
       // total market cap includes all 3 stocks
