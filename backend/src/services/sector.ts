@@ -102,13 +102,12 @@ export class SectorService {
 
   /**
    * Returns historical metrics for a sector over the last `days` days, ordered by date ascending.
-   * Defaults to 2520 days (~10 years).
+   * Defaults to 3650 days = 10 years.
    */
-  getSectorHistory(sector: string, days: number = 2520): SectorMetric[] {
+  getSectorHistory(sector: string, days: number = 3650): SectorMetric[] {
     const db = getDatabase();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+    const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const cutoffStr = cutoffDate.toISOString().split('T')[0];
 
     return db
       .prepare(

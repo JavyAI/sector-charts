@@ -96,6 +96,24 @@ describe('SectorService', () => {
       expect(metric.weightedMarketCap).toBe(3_000_000_000_000);
       expect(metric.lastUpdated).toBeTruthy();
     });
+
+    it('aggregates multiple stocks with mixed null P/Es and rounds to 1 decimal', () => {
+      const stocks: StockFundamental[] = [
+        { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_000_000_000_000, peRatio: 30, eps: 6, shares: 15_000_000_000 },
+        { symbol: 'MSFT', companyName: 'Microsoft', marketCap: 2_500_000_000_000, peRatio: 35, eps: 10, shares: 7_500_000_000 },
+        { symbol: 'GOOG', companyName: 'Google', marketCap: 1_000_000_000_000, peRatio: null, eps: null, shares: 5_000_000_000 },
+      ];
+      const metric = service.aggregateToSector('2024-01-15', 'Technology', stocks);
+
+      // weighted P/E uses only AAPL and MSFT (GOOG has null P/E)
+      // (30 * 3T + 35 * 2.5T) / (3T + 2.5T) = (90T + 87.5T) / 5.5T ≈ 32.27 → rounds to 32.3
+      expect(metric.weightedPeRatio).toBe(32.3);
+      // equal weight: (30 + 35) / 2 = 32.5
+      expect(metric.equalWeightPeRatio).toBe(32.5);
+      // total market cap includes all 3 stocks
+      expect(metric.weightedMarketCap).toBe(6_500_000_000_000);
+      expect(metric.constituents).toBe(3);
+    });
   });
 
   // ------------------------------------------------------------------ //
@@ -114,6 +132,38 @@ describe('SectorService', () => {
       expect(service.calculatePeChangePercentage(31, 25)).toBe(24);
       // (30 - 22) / 22 * 100 = 36.363... → 36.4
       expect(service.calculatePeChangePercentage(30, 22)).toBe(36.4);
+    });
+  });
+
+  // ------------------------------------------------------------------ //
+  describe('calculateTotalMarketCap', () => {
+    it('returns 0 for an empty array', () => {
+      expect(service.calculateTotalMarketCap([])).toBe(0);
+    });
+
+    it('returns the single stock market cap', () => {
+      const stocks: StockFundamental[] = [
+        { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_000_000_000_000, peRatio: 30, eps: 6, shares: 15_000_000_000 },
+      ];
+      expect(service.calculateTotalMarketCap(stocks)).toBe(3_000_000_000_000);
+    });
+
+    it('sums multiple stocks correctly', () => {
+      const stocks: StockFundamental[] = [
+        { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_000_000_000_000, peRatio: 30, eps: 6, shares: 15_000_000_000 },
+        { symbol: 'MSFT', companyName: 'Microsoft', marketCap: 2_500_000_000_000, peRatio: 35, eps: 10, shares: 7_500_000_000 },
+        { symbol: 'GOOG', companyName: 'Google', marketCap: 1_000_000_000_000, peRatio: 28, eps: 5, shares: 5_000_000_000 },
+      ];
+      expect(service.calculateTotalMarketCap(stocks)).toBe(6_500_000_000_000);
+    });
+
+    it('includes negative and zero market caps in sum', () => {
+      const stocks: StockFundamental[] = [
+        { symbol: 'AAPL', companyName: 'Apple', marketCap: 1_000_000_000, peRatio: 30, eps: 6, shares: 1_000_000_000 },
+        { symbol: 'BAD1', companyName: 'Bad Corp', marketCap: -500_000_000, peRatio: null, eps: null, shares: 0 },
+        { symbol: 'BAD2', companyName: 'Zero Corp', marketCap: 0, peRatio: null, eps: null, shares: 0 },
+      ];
+      expect(service.calculateTotalMarketCap(stocks)).toBe(500_000_000);
     });
   });
 
@@ -148,6 +198,69 @@ describe('SectorService', () => {
       expect(result[0].sector).toBe('Healthcare');
       expect(result[1].sector).toBe('Technology');
       expect(result[0].weightedPeRatio).toBe(18.5);
+    });
+
+    it('upserts: second insert for same date+sector replaces the first', () => {
+      const makeMetric = (weightedPeRatio: number) => ({
+        date: '2024-01-15',
+        sector: 'Technology',
+        weightedPeRatio,
+        equalWeightPeRatio: 25.0,
+        weightedMarketCap: 5_000_000_000_000,
+        constituents: 2,
+        lastUpdated: new Date().toISOString(),
+      });
+
+      service.storeSectorMetrics([makeMetric(25)]);
+      service.storeSectorMetrics([makeMetric(30)]);
+
+      const row = testDb
+        .prepare("SELECT COUNT(*) as count, weightedPeRatio FROM sector_metrics WHERE date = '2024-01-15' AND sector = 'Technology'")
+        .get() as { count: number; weightedPeRatio: number };
+
+      expect(row.count).toBe(1);
+      expect(row.weightedPeRatio).toBe(30);
+    });
+  });
+
+  // ------------------------------------------------------------------ //
+  describe('storeSectorMetrics transaction atomicity', () => {
+    it('rolls back all inserts when one metric is invalid', () => {
+      const validMetric = {
+        date: '2024-02-01',
+        sector: 'Healthcare',
+        weightedPeRatio: 20.0,
+        equalWeightPeRatio: 19.5,
+        weightedMarketCap: 1_000_000_000_000,
+        constituents: 3,
+        lastUpdated: new Date().toISOString(),
+      };
+      const invalidMetric = {
+        date: null as unknown as string, // violates NOT NULL constraint
+        sector: 'Energy',
+        weightedPeRatio: 15.0,
+        equalWeightPeRatio: 14.0,
+        weightedMarketCap: 500_000_000_000,
+        constituents: 1,
+        lastUpdated: new Date().toISOString(),
+      };
+      const thirdMetric = {
+        date: '2024-02-01',
+        sector: 'Financials',
+        weightedPeRatio: 12.0,
+        equalWeightPeRatio: 11.5,
+        weightedMarketCap: 800_000_000_000,
+        constituents: 2,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      expect(() => service.storeSectorMetrics([validMetric, invalidMetric, thirdMetric])).toThrow();
+
+      const { count } = testDb
+        .prepare("SELECT COUNT(*) as count FROM sector_metrics WHERE date = '2024-02-01'")
+        .get() as { count: number };
+
+      expect(count).toBe(0);
     });
   });
 });
