@@ -4,10 +4,8 @@
   "description": "S&P 500 Sector Valuations Dashboard - monorepo root",
   "private": true,
   "scripts": {
-    "install:backend": "cd backend && npm install",
-    "build": "cd backend && npm install && npm run build",
-    "start": "cd backend && npm run start",
-    "postinstall": "cd backend && npm install"
+    "build": "cd backend && npm run build",
+    "start": "cd backend && npm run start"
   },
   "engines": {
     "node": ">=18.0.0"

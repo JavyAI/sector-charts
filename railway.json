@@ -1,11 +1,9 @@
 {
   "$schema": "https://railway.app/schema.json",
   "build": {
-    "builder": "nixpacks",
-    "buildCommand": "cd backend && npm install && npm run build"
+    "builder": "nixpacks"
   },
   "deploy": {
-    "startCommand": "cd backend && npm run start",
     "restartPolicyType": "on_failure",
     "restartPolicyMaxRetries": 5,
     "healthcheckPath": "/api/sectors?date=2026-04-11",
