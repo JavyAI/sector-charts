@@ -20,6 +20,17 @@ vi.mock('../../src/db/connection.js', () => ({
 vi.mock('axios');
 import axios from 'axios';
 
+// --- mock config so we can control githubToken ---
+vi.mock('../../src/config.js', () => ({
+  config: {
+    constituents: {
+      repo: 'javyai/sector-data',
+      filePath: 'constituents.csv',
+      githubToken: 'ghp_test_token',
+    },
+  },
+}));
+
 const SAMPLE_CSV = `Symbol,Security,GICS Sector,GICS Sub-Industry,Headquarters Location,Date added,CIK,Founded
 AAPL,Apple Inc.,Information Technology,Technology Hardware Storage & Peripherals,"Cupertino, California",1982-11-30,320193,1977
 MSFT,Microsoft Corporation,Information Technology,Systems Software,"Redmond, Washington",1994-06-01,789019,1975
@@ -48,6 +59,22 @@ describe('constituents service', () => {
 
   // ------------------------------------------------------------------ //
   describe('fetchConstituentsFromGitHub', () => {
+    it('calls GitHub API with correct URL and Authorization header', async () => {
+      vi.mocked(axios.get).mockResolvedValueOnce({ data: SAMPLE_CSV });
+
+      await fetchConstituentsFromGitHub();
+
+      expect(vi.mocked(axios.get)).toHaveBeenCalledWith(
+        'https://api.github.com/repos/javyai/sector-data/contents/constituents.csv',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer ghp_test_token',
+            Accept: 'application/vnd.github.v3.raw',
+          }),
+        }),
+      );
+    });
+
     it('parses standard CSV rows correctly', async () => {
       vi.mocked(axios.get).mockResolvedValueOnce({ data: SAMPLE_CSV });
 
@@ -101,6 +128,57 @@ describe('constituents service', () => {
       vi.mocked(axios.get).mockRejectedValueOnce(new Error('Network error'));
 
       await expect(fetchConstituentsFromGitHub()).rejects.toThrow('Network error');
+    });
+
+    it('throws clear error when GITHUB_TOKEN is missing', async () => {
+      const { config } = await import('../../src/config.js');
+      const original = config.constituents.githubToken;
+      config.constituents.githubToken = '';
+
+      await expect(fetchConstituentsFromGitHub()).rejects.toThrow(
+        'GITHUB_TOKEN env var is required to fetch constituents from private repo',
+      );
+
+      config.constituents.githubToken = original;
+    });
+
+    it('throws clear error on 401 response', async () => {
+      const error = Object.assign(new Error('Unauthorized'), {
+        isAxiosError: true,
+        response: { status: 401 },
+      });
+      vi.mocked(axios.isAxiosError).mockReturnValueOnce(true);
+      vi.mocked(axios.get).mockRejectedValueOnce(error);
+
+      await expect(fetchConstituentsFromGitHub()).rejects.toThrow(
+        'GitHub API returned 401',
+      );
+    });
+
+    it('throws clear error on 403 response', async () => {
+      const error = Object.assign(new Error('Forbidden'), {
+        isAxiosError: true,
+        response: { status: 403 },
+      });
+      vi.mocked(axios.isAxiosError).mockReturnValueOnce(true);
+      vi.mocked(axios.get).mockRejectedValueOnce(error);
+
+      await expect(fetchConstituentsFromGitHub()).rejects.toThrow(
+        'GitHub API returned 403',
+      );
+    });
+
+    it('throws clear error on 404 response', async () => {
+      const error = Object.assign(new Error('Not Found'), {
+        isAxiosError: true,
+        response: { status: 404 },
+      });
+      vi.mocked(axios.isAxiosError).mockReturnValueOnce(true);
+      vi.mocked(axios.get).mockRejectedValueOnce(error);
+
+      await expect(fetchConstituentsFromGitHub()).rejects.toThrow(
+        'GitHub API returned 404',
+      );
     });
   });
 
