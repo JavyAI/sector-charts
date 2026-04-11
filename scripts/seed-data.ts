@@ -53,7 +53,7 @@ async function seedData() {
       sectorService.aggregateToSector(today, sector, stocks)
     );
 
-    sectorService.storeSectorMetrics(allMetrics);
+    await sectorService.storeSectorMetrics(allMetrics);
 
     console.log(`✅ Seeded ${allMetrics.length} sectors with mock data`);
   } catch (error) {
