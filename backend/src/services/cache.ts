@@ -19,9 +19,9 @@ export class CacheService {
    */
   get<T>(key: string): T | null {
     const db = getDatabase();
-    const row = db.prepare('SELECT value, expires_at FROM cache WHERE key = ?').get(key) as any;
+    const row = db.prepare('SELECT value, expiresAt FROM cache WHERE key = ?').get(key) as any;
     if (!row) return null;
-    if (row.expires_at && row.expires_at < Date.now()) {
+    if (row.expiresAt && row.expiresAt < Date.now()) {
       db.prepare('DELETE FROM cache WHERE key = ?').run(key);
       return null;
     }

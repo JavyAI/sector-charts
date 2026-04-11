@@ -2,6 +2,7 @@ import config from './config.js';
 import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './db/connection.js';
+import sectorsRouter from './routes/sectors.js';
 
 const app = express();
 const PORT = config.port;
@@ -25,10 +26,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Routes will be added in subsequent tasks
-app.use('/api/sectors', (req, res) => {
-  res.status(501).json({ error: 'Not implemented' });
-});
+// Routes
+app.use('/api/sectors', sectorsRouter);
+
+app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
