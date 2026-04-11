@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
 import TimelapseControl from './components/TimelapseControl';
 import SectorToggle from './components/SectorToggle';
 import CapVsEqualToggle from './components/CapVsEqualToggle';
+import { MarketContextCard } from './components/MarketContextCard';
 import { useSectorData } from './hooks/useSectorData';
 import './App.css';
 
@@ -33,6 +34,8 @@ function App() {
         <h1>S&P 500 Sector Valuations</h1>
         <p>Live P/E Ratios vs Historical Averages</p>
       </header>
+
+      <MarketContextCard years={10} />
 
       <div className="controls-panel">
         <DateRangePicker value={selectedDate} onChange={setSelectedDate} />
