@@ -97,7 +97,7 @@ describe('SectorService', () => {
       expect(metric.lastUpdated).toBeTruthy();
     });
 
-    it('aggregates multiple stocks with mixed null P/Es and rounds to 1 decimal', () => {
+    it('aggregates multiple stocks with mixed null P/Es at full precision', () => {
       const stocks: StockFundamental[] = [
         { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_000_000_000_000, peRatio: 30, eps: 6, shares: 15_000_000_000 },
         { symbol: 'MSFT', companyName: 'Microsoft', marketCap: 2_500_000_000_000, peRatio: 35, eps: 10, shares: 7_500_000_000 },
@@ -106,8 +106,8 @@ describe('SectorService', () => {
       const metric = service.aggregateToSector('2024-01-15', 'Technology', stocks);
 
       // weighted P/E uses only AAPL and MSFT (GOOG has null P/E)
-      // 5.5T / (3T/30 + 2.5T/35) = 5.5T / 0.17143T ≈ 32.08 → rounds to 32.1
-      expect(metric.weightedPeRatio).toBe(32.1);
+      // 5.5T / (3T/30 + 2.5T/35) = 5.5T / 0.17143T ≈ 32.083... stored at full precision
+      expect(metric.weightedPeRatio).toBeCloseTo(32.083, 2);
       // equal weight: (30 + 35) / 2 = 32.5
       expect(metric.equalWeightPeRatio).toBe(32.5);
       // total market cap includes all 3 stocks
