@@ -2,10 +2,11 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { sectorService } from '../services/sector.js';
 import { cacheService } from '../services/cache.js';
 import { validateSectorName } from '../utils/validation.js';
+import { SectorMetric } from '../types.js';
 
 const router = Router();
 
-const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => {
+const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
@@ -17,7 +18,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   }
   const cacheKey = `sectors:${date}`;
 
-  const cached = cacheService.get<{ date: string; sectors: any[] }>(cacheKey);
+  const cached = cacheService.get<{ date: string; sectors: SectorMetric[] }>(cacheKey);
   if (cached) {
     return res.json(cached);
   }

@@ -20,7 +20,6 @@ export interface SectorMetric {
 export interface HistoricalSectorMetric extends SectorMetric {
   peRatioPctChange5Yr: number;
   peRatioPctChange10Yr: number;
-  ytdReturn: number;
 }
 
 export interface CacheEntry {

@@ -110,7 +110,7 @@ export class PolygonService {
         const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/indices/constituents/GSPC`, {
           params: { apikey: this.apiKey },
         });
-        return (response.data.results || []).map((item: any) => item.ticker || item.symbol);
+        return (response.data.results || []).map((item: { ticker?: string; symbol?: string }) => item.ticker || item.symbol);
       } catch (error) {
         console.error('Failed to fetch S&P 500 constituents:', error);
         return [];
@@ -141,7 +141,7 @@ export class PolygonService {
   async getStockFundamentals(symbol: string, date?: string): Promise<PolygonFundamentals | null> {
     return this.queueRequest(async () => {
       try {
-        const params: Record<string, any> = { apikey: this.apiKey };
+        const params: Record<string, string> = { apikey: this.apiKey };
         if (date) {
           params.date = date;
         }

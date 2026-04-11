@@ -5,7 +5,7 @@ export class CacheService {
   /**
    * Store value in cache with TTL
    */
-  set(key: string, value: any, ttlHours: number = config.cacheTtlHours): void {
+  set(key: string, value: unknown, ttlHours: number = config.cacheTtlHours): void {
     const db = getDatabase();
     const expiresAt = Date.now() + ttlHours * 60 * 60 * 1000;
     const valueStr = JSON.stringify(value);
@@ -19,7 +19,7 @@ export class CacheService {
    */
   get<T>(key: string): T | null {
     const db = getDatabase();
-    const row = db.prepare('SELECT value, expiresAt FROM cache WHERE key = ?').get(key) as any;
+    const row = db.prepare('SELECT value, expiresAt FROM cache WHERE key = ?').get(key) as { value: string; expiresAt: number } | undefined;
     if (!row) return null;
     if (row.expiresAt && row.expiresAt < Date.now()) {
       db.prepare('DELETE FROM cache WHERE key = ?').run(key);
