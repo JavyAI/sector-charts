@@ -28,18 +28,18 @@ describe('Database Schema', () => {
   });
 
   it('should enforce unique constraint on constituents symbol', () => {
-    const insert = db.prepare('INSERT INTO constituents (symbol, companyName, sector) VALUES (?, ?, ?)');
-    insert.run('AAPL', 'Apple Inc.', 'Technology');
+    const insert = db.prepare('INSERT INTO constituents (symbol, security, gics_sector) VALUES (?, ?, ?)');
+    insert.run('AAPL', 'Apple Inc.', 'Information Technology');
 
     expect(() => {
-      insert.run('AAPL', 'Apple Inc.', 'Technology');
+      insert.run('AAPL', 'Apple Inc.', 'Information Technology');
     }).toThrow();
   });
 
   it('should enforce unique constraint on stock_fundamentals (symbol, date)', () => {
     const insert = db.prepare('INSERT INTO stock_fundamentals (symbol, date, peRatio, marketCap, eps, shares) VALUES (?, ?, ?, ?, ?, ?)');
     // First, insert a constituent so FK doesn't fail
-    db.prepare('INSERT INTO constituents (symbol, companyName, sector) VALUES (?, ?, ?)').run('MSFT', 'Microsoft Corp.', 'Technology');
+    db.prepare('INSERT INTO constituents (symbol, security, gics_sector) VALUES (?, ?, ?)').run('MSFT', 'Microsoft Corp.', 'Information Technology');
 
     insert.run('MSFT', '2024-01-01', 25.5, 3000000000000, 6.05, 16500000000);
 
