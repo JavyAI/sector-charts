@@ -45,7 +45,9 @@ router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ error: `Sector '${sectorName}' not found for date ${date}` });
   }
 
-  const history = sectorService.getSectorHistory(sectorName);
+  const allHistory = sectorService.getSectorHistory(sectorName);
+  // Exclude the current date so historical averages are not self-referential
+  const history = allHistory.filter((h) => h.date < current.date);
 
   const fiveYearsAgo = new Date();
   fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
