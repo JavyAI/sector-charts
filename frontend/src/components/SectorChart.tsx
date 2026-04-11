@@ -19,6 +19,9 @@ interface SectorChartProps {
   displayMode: 'cap-weighted' | 'equal-weight';
 }
 
+// NOTE: Sector names here match seed-data.ts (e.g. "Technology" not "Information Technology").
+// If connecting to a real Polygon API with GICS official names, update keys to match
+// (e.g. "Technology" -> "Information Technology"). Unmatched sectors fall back to '#999'.
 const COLORS = {
   'Technology': '#1f77b4',
   'Financials': '#ff7f0e',
