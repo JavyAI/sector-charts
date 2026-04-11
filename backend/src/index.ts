@@ -1,19 +1,26 @@
+import config from './config.js';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { initializeDatabase } from './db/connection.js';
 
-dotenv.config();
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? 'https://yourdomain.com'
+    : 'http://localhost:3000',
+}));
 app.use(express.json());
 
 // Initialize database
-await initializeDatabase();
+try {
+  await initializeDatabase();
+} catch (error) {
+  console.error('Failed to initialize database:', error);
+  process.exit(1);
+}
 
 // Health check
 app.get('/health', (req, res) => {
@@ -25,6 +32,23 @@ app.use('/api/sectors', (req, res) => {
   res.status(501).json({ error: 'Not implemented' });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
