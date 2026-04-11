@@ -10,7 +10,10 @@ const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFuncti
 
 // GET /api/sectors?date=YYYY-MM-DD
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
+  const date = req.query.date as string;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  }
   const cacheKey = `sectors:${date}`;
 
   const cached = cacheService.get<{ date: string; sectors: any[] }>(cacheKey);
@@ -30,7 +33,10 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 
 // GET /api/sectors/:sectorName?date=YYYY-MM-DD
 router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
-  const { sectorName } = req.params;
+  const sectorName = req.params.sectorName;
+  if (!sectorName || !/^[a-zA-Z\s]+$/.test(sectorName)) {
+    return res.status(400).json({ error: 'Invalid sector name.' });
+  }
   const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
 
   const sectors = sectorService.getSectorsForDate(date);
@@ -78,6 +84,9 @@ router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
 router.get('/:sectorName/history', asyncHandler(async (req: Request, res: Response) => {
   const { sectorName } = req.params;
   const days = parseInt((req.query.days as string) || '365', 10);
+  if (isNaN(days) || days < 1 || days > 3650) {
+    return res.status(400).json({ error: 'Invalid days parameter. Must be between 1 and 3650.' });
+  }
 
   const history = sectorService.getSectorHistory(sectorName, days);
   if (history.length === 0) {
