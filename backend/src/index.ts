@@ -8,9 +8,7 @@ const PORT = config.port;
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? 'https://yourdomain.com'
-    : 'http://localhost:3000',
+  origin: config.corsOrigin,
 }));
 app.use(express.json());
 

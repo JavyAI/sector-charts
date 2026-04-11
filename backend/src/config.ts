@@ -22,12 +22,16 @@ if (isNaN(rateLimitWindowMs) || rateLimitWindowMs < 1) {
   throw new Error(`Invalid POLYGON_RATE_LIMIT_WINDOW_MS: must be a positive integer, got ${process.env.POLYGON_RATE_LIMIT_WINDOW_MS}`);
 }
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const corsOrigin = process.env.CORS_ORIGIN || (nodeEnv === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000');
+
 export const config = {
   polygonApiKey: process.env.POLYGON_API_KEY || '',
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   port,
   databasePath: process.env.DATABASE_PATH || './data/sectors.db',
   cacheTtlHours,
+  corsOrigin,
   rateLimiting: {
     requests: rateLimitRequests,
     windowMs: rateLimitWindowMs,
