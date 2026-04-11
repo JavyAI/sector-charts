@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 const POLYGON_BASE_URL = 'https://api.polygon.io';
 
@@ -81,7 +82,7 @@ export class PolygonService {
       if (this.windowRequestCount >= config.rateLimiting.requests) {
         const waitTime = config.rateLimiting.windowMs - (Date.now() - this.windowStartTime);
         if (waitTime > 0) {
-          console.log(`Rate limit reached. Waiting ${waitTime}ms...`);
+          logger.info(`Rate limit reached. Waiting ${waitTime}ms...`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
         }
         // After waiting, reset window for the new request
@@ -112,7 +113,7 @@ export class PolygonService {
         });
         return (response.data.results || []).map((item: { ticker?: string; symbol?: string }) => item.ticker || item.symbol);
       } catch (error) {
-        console.error('Failed to fetch S&P 500 constituents:', error);
+        logger.error({ err: error }, 'Failed to fetch S&P 500 constituents');
         return [];
       }
     });
@@ -129,7 +130,7 @@ export class PolygonService {
         });
         return response.data.results || null;
       } catch (error) {
-        console.error(`Error fetching ticker details for ${symbol}:`, error);
+        logger.error({ err: error }, `Error fetching ticker details for ${symbol}`);
         return null;
       }
     });
@@ -149,7 +150,7 @@ export class PolygonService {
         const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/tickers/${symbol}/financials`, { params });
         return response.data.results?.[0] || null;
       } catch (error) {
-        console.error(`Error fetching fundamentals for ${symbol}:`, error);
+        logger.error({ err: error }, `Error fetching fundamentals for ${symbol}`);
         return null;
       }
     });
@@ -166,7 +167,7 @@ export class PolygonService {
         });
         return response.data.results || [];
       } catch (error) {
-        console.error(`Error fetching historical bars for ${symbol}:`, error);
+        logger.error({ err: error }, `Error fetching historical bars for ${symbol}`);
         return [];
       }
     });

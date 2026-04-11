@@ -1,5 +1,6 @@
 import { getDatabase } from '../db/connection.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 export class CacheService {
   /**
@@ -28,7 +29,7 @@ export class CacheService {
     try {
       return JSON.parse(row.value) as T;
     } catch (error) {
-      console.error(`Failed to parse cached value for key "${key}":`, error);
+      logger.error({ err: error }, `Failed to parse cached value for key "${key}"`);
       db.prepare('DELETE FROM cache WHERE key = ?').run(key); // Delete corrupted entry
       return null;
     }

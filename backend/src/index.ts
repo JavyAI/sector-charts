@@ -5,6 +5,7 @@ import { initializeDatabase } from './db/connection.js';
 import sectorsRouter from './routes/sectors.js';
 import constituentsRouter from './routes/constituents.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { logger } from './logger.js';
 
 const app = express();
 const PORT = config.port;
@@ -19,7 +20,7 @@ app.use(express.json());
 try {
   initializeDatabase();
 } catch (error) {
-  console.error('Failed to initialize database:', error);
+  logger.error({ err: error }, 'Failed to initialize database');
   process.exit(1);
 }
 
@@ -36,22 +37,22 @@ app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on 0.0.0.0:${PORT}`);
+  logger.info(`Server running on 0.0.0.0:${PORT}`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  logger.info('SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
+  logger.info('SIGINT received, shutting down gracefully');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });

@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../config.js';
 import { createSchema } from './schema.js';
+import { logger } from '../logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,8 +27,7 @@ export const initializeDatabase = (): void => {
 
   createSchema(db);
 
-  // TODO: Replace with structured logger (pino, winston) for production
-  console.log(`Database initialized at ${dbPath}`);
+  logger.info(`Database initialized at ${dbPath}`);
 };
 
 export const closeDatabase = (): void => {
