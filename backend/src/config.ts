@@ -36,6 +36,11 @@ export const config = {
     requests: rateLimitRequests,
     windowMs: rateLimitWindowMs,
   },
+  constituents: {
+    repo: process.env.CONSTITUENTS_REPO || 'javyai/sector-data',
+    filePath: process.env.CONSTITUENTS_FILE_PATH || 'constituents.csv',
+    githubToken: process.env.GITHUB_TOKEN || '',
+  },
 };
 
 // Validate required config
