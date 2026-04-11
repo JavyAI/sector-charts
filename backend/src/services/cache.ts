@@ -19,19 +19,19 @@ export class CacheService {
    */
   get<T>(key: string): T | null {
     const db = getDatabase();
-    const now = Date.now();
-
-    const row = db
-      .prepare('SELECT value, expiresAt FROM cache WHERE key = ?')
-      .get(key) as { value: string; expiresAt: number } | undefined;
-
+    const row = db.prepare('SELECT value, expires_at FROM cache WHERE key = ?').get(key) as any;
     if (!row) return null;
-    if (row.expiresAt < now) {
+    if (row.expires_at && row.expires_at < Date.now()) {
       db.prepare('DELETE FROM cache WHERE key = ?').run(key);
       return null;
     }
-
-    return JSON.parse(row.value) as T;
+    try {
+      return JSON.parse(row.value) as T;
+    } catch (error) {
+      console.error(`Failed to parse cached value for key "${key}":`, error);
+      db.prepare('DELETE FROM cache WHERE key = ?').run(key); // Delete corrupted entry
+      return null;
+    }
   }
 
   /**

@@ -3,6 +3,17 @@ import { config } from '../config.js';
 
 const POLYGON_BASE_URL = 'https://api.polygon.io';
 
+export interface PolygonBar {
+  o: number; // open
+  h: number; // high
+  l: number; // low
+  c: number; // close
+  v: number; // volume
+  vw?: number; // volume weighted avg price
+  t: number; // timestamp
+  n?: number; // transactions
+}
+
 interface PolygonTicker {
   ticker: string;
   name: string;
@@ -25,8 +36,10 @@ interface PolygonFundamentals {
 
 export class PolygonService {
   private apiKey: string;
-  private requestQueue: Array<() => Promise<any>> = [];
+  private requestQueue: Array<() => Promise<unknown>> = [];
   private isProcessing = false;
+  private windowStartTime = Date.now();
+  private windowRequestCount = 0;
 
   constructor() {
     this.apiKey = config.polygonApiKey;
@@ -53,24 +66,22 @@ export class PolygonService {
     if (this.isProcessing || this.requestQueue.length === 0) return;
 
     this.isProcessing = true;
-    let startTime = Date.now();
-    let requestCount = 0;
 
     while (this.requestQueue.length > 0) {
       const now = Date.now();
-      const timeInWindow = now - startTime;
+      const timeInWindow = now - this.windowStartTime;
 
-      if (requestCount >= config.rateLimiting.requests && timeInWindow < config.rateLimiting.windowMs) {
+      if (this.windowRequestCount >= config.rateLimiting.requests && timeInWindow < config.rateLimiting.windowMs) {
         const waitTime = config.rateLimiting.windowMs - timeInWindow;
         await new Promise((resolve) => setTimeout(resolve, waitTime));
-        startTime = Date.now();
-        requestCount = 0;
+        this.windowStartTime = Date.now();
+        this.windowRequestCount = 0;
       }
 
       const request = this.requestQueue.shift();
       if (request) {
         await request();
-        requestCount++;
+        this.windowRequestCount++;
       }
     }
 
@@ -83,6 +94,8 @@ export class PolygonService {
   async getSP500Constituents(): Promise<string[]> {
     return this.queueRequest(async () => {
       try {
+        // Note: This endpoint requires the appropriate Polygon plan.
+        // If it 404s in production, consider: 1) hardcoding S&P 500, 2) fetching from wikipedia, 3) using an alternative source.
         const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/indices/constituents/GSPC`, {
           params: { apikey: this.apiKey },
         });
@@ -134,7 +147,7 @@ export class PolygonService {
   /**
    * Get historical daily bars for a stock
    */
-  async getHistoricalBars(symbol: string, from: string, to: string): Promise<any[]> {
+  async getHistoricalBars(symbol: string, from: string, to: string): Promise<PolygonBar[]> {
     return this.queueRequest(async () => {
       try {
         const response = await axios.get(`${POLYGON_BASE_URL}/v2/aggs/ticker/${symbol}/range/1/day/${from}/${to}`, {
