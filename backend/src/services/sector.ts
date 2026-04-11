@@ -45,8 +45,8 @@ export class SectorService {
    * Aggregates stock fundamentals into a SectorMetric for the given date and sector.
    */
   aggregateToSector(date: string, sector: string, stocks: StockFundamental[]): SectorMetric {
-    const weightedPeRatio = Math.round(this.calculateWeightedPeRatio(stocks) * 10) / 10;
-    const equalWeightPeRatio = Math.round(this.calculateEqualWeightPeRatio(stocks) * 10) / 10;
+    const weightedPeRatio = this.calculateWeightedPeRatio(stocks);
+    const equalWeightPeRatio = this.calculateEqualWeightPeRatio(stocks);
     const weightedMarketCap = this.calculateTotalMarketCap(stocks);
 
     return {

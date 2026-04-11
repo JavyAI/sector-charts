@@ -76,6 +76,8 @@ router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
 
   return res.json({
     ...current,
+    weightedPeRatio: Math.round(current.weightedPeRatio * 10) / 10,
+    equalWeightPeRatio: Math.round(current.equalWeightPeRatio * 10) / 10,
     peRatioPctChange5Yr,
     peRatioPctChange10Yr,
   });
