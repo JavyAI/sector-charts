@@ -36,10 +36,13 @@ export const config = {
     requests: rateLimitRequests,
     windowMs: rateLimitWindowMs,
   },
+  privateDataRepo: process.env.PRIVATE_DATA_REPO || process.env.CONSTITUENTS_REPO || 'JavyAI/sector-data',
+  githubToken: process.env.GITHUB_TOKEN || '',
   constituents: {
-    repo: process.env.CONSTITUENTS_REPO || 'javyai/sector-data',
     filePath: process.env.CONSTITUENTS_FILE_PATH || 'constituents.csv',
-    githubToken: process.env.GITHUB_TOKEN || '',
+  },
+  shiller: {
+    filePath: process.env.SHILLER_FILE_PATH || 'shiller.csv',
   },
 };
 
