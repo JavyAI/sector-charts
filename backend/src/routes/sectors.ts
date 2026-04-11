@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { sectorService } from '../services/sector.js';
 import { cacheService } from '../services/cache.js';
+import { validateSectorName } from '../utils/validation.js';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 // GET /api/sectors/:sectorName?date=YYYY-MM-DD
 router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
   const sectorName = req.params.sectorName;
-  if (!sectorName || !/^[a-zA-Z\s]+$/.test(sectorName)) {
+  if (!validateSectorName(sectorName)) {
     return res.status(400).json({ error: 'Invalid sector name.' });
   }
   const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
@@ -86,6 +87,9 @@ router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
 // GET /api/sectors/:sectorName/history?days=365
 router.get('/:sectorName/history', asyncHandler(async (req: Request, res: Response) => {
   const { sectorName } = req.params;
+  if (!validateSectorName(sectorName)) {
+    return res.status(400).json({ error: 'Invalid sector name.' });
+  }
   const days = parseInt((req.query.days as string) || '365', 10);
   if (isNaN(days) || days < 1 || days > 3650) {
     return res.status(400).json({ error: 'Invalid days parameter. Must be between 1 and 3650.' });
