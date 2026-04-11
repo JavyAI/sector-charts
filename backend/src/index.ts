@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './db/connection.js';
 import sectorsRouter from './routes/sectors.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 const PORT = config.port;
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
 app.use('/api/sectors', sectorsRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+app.use(errorHandler);
 
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
