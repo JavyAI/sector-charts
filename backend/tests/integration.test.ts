@@ -9,6 +9,7 @@ import { StockFundamental } from '../src/types.js';
 
 describe('Integration Tests', () => {
   beforeAll(() => {
+    // Force in-memory database for tests (DATABASE_PATH set in setup.ts)
     initializeDatabase();
   });
 

@@ -16,7 +16,7 @@ export const getDatabase = (): Database.Database => {
 };
 
 export const initializeDatabase = (): void => {
-  const dbPath = config.databasePath.startsWith('/')
+  const dbPath = config.databasePath === ':memory:' || config.databasePath.startsWith('/')
     ? config.databasePath
     : path.join(process.cwd(), config.databasePath);
 
