@@ -121,25 +121,30 @@ No manual re-deployment needed.
 - **Horizontal**: If you need multiple instances, Railway handles load balancing automatically
 - **Database**: SQLite is single-writer; for multi-instance deployments, migrate to PostgreSQL
 
-## Configuring Private Constituents Source
+## Configuring Private Data Source
 
-The backend fetches the S&P 500 constituent list from a private GitHub repo (`javyai/sector-data`) using the GitHub REST API. You must configure a GitHub Personal Access Token so the backend can read from that private repo.
+The backend fetches TWO files from a single private GitHub repo (`JavyAI/sector-data`) using the GitHub REST API:
+
+- **`constituents.csv`** — S&P 500 constituent list with GICS sectors (manually curated by you)
+- **`shiller.csv`** — Robert Shiller's historical monthly S&P 500 data back to 1871 (auto-updated monthly via GitHub Action)
+
+You must configure a GitHub Personal Access Token so the backend can read both files.
 
 ### Step 1: Create a GitHub Personal Access Token
 
-**Option A — Classic token (simpler):**
+**Option A — Fine-grained token (most secure, recommended):**
+1. Go to https://github.com/settings/personal-access-tokens/new
+2. Set a name, e.g. "sector-charts data read"
+3. Under **Repository access**, select **Only select repositories** → choose `JavyAI/sector-data`
+4. Under **Permissions → Repository permissions**, set **Contents** to **Read-only**
+5. Click **Generate token** and copy the value (starts with `github_pat_`)
+
+**Option B — Classic token (simpler):**
 1. Go to https://github.com/settings/tokens/new
-2. Set a note, e.g. "sector-charts constituents read"
+2. Set a note, e.g. "sector-charts data read"
 3. Set expiration as desired
 4. Under **Scopes**, check **`repo`** (grants read access to all private repos)
 5. Click **Generate token** and copy the value (starts with `ghp_`)
-
-**Option B — Fine-grained token (more secure, recommended):**
-1. Go to https://github.com/settings/personal-access-tokens/new
-2. Set a name, e.g. "sector-charts constituents"
-3. Under **Repository access**, select **Only select repositories** → choose `javyai/sector-data`
-4. Under **Permissions → Repository permissions**, set **Contents** to **Read-only**
-5. Click **Generate token** and copy the value (starts with `github_pat_`)
 
 ### Step 2: Set Environment Variables on Railway
 
@@ -147,32 +152,45 @@ In Railway's **Environment** tab (or via CLI), add:
 
 ```
 GITHUB_TOKEN=<your_token_from_step_1>
-CONSTITUENTS_REPO=javyai/sector-data
+PRIVATE_DATA_REPO=JavyAI/sector-data
 CONSTITUENTS_FILE_PATH=constituents.csv
+SHILLER_FILE_PATH=shiller.csv
 ```
 
-Via Railway CLI:
+> **Note**: `PRIVATE_DATA_REPO` is the new name. For backward-compat, `CONSTITUENTS_REPO` is still read as a fallback, but prefer `PRIVATE_DATA_REPO` going forward.
+
+Via Railway CLI (set `GITHUB_TOKEN` in the dashboard, not in shell history):
 ```bash
 cd /Users/javyai/AIProjects/sector-charts
-railway variables --set "CONSTITUENTS_REPO=javyai/sector-data" --set "CONSTITUENTS_FILE_PATH=constituents.csv"
-# Set GITHUB_TOKEN manually in the Railway dashboard (do not paste tokens in shell history)
+railway variables --set "PRIVATE_DATA_REPO=JavyAI/sector-data" \
+                  --set "CONSTITUENTS_FILE_PATH=constituents.csv" \
+                  --set "SHILLER_FILE_PATH=shiller.csv"
 ```
 
 ### Step 3: Verify the Integration
 
-Once deployed with the token set, trigger a refresh:
+Once deployed with the token set, trigger both refreshes:
 ```bash
 curl -X POST https://<your-railway-url>/api/constituents/refresh
+curl -X POST https://<your-railway-url>/api/shiller/refresh
 ```
 
-You should get back a JSON response confirming ~500 constituents were loaded from the private repo.
+You should get back JSON confirming ~500 constituents and ~1800+ Shiller data points were loaded from your private repo.
 
-### Updating Your Constituent List
+Then check the market P/E endpoint:
+```bash
+curl "https://<your-railway-url>/api/shiller/market-pe?years=10"
+```
 
-To add, remove, or modify constituents:
-1. Edit `constituents.csv` in https://github.com/javyai/sector-data
+### Updating Your Data
+
+**Constituents (manual):**
+1. Edit `constituents.csv` in https://github.com/JavyAI/sector-data
 2. Commit and push
 3. Call `POST /api/constituents/refresh` to pull in the changes
+
+**Shiller (automated):**
+A GitHub Action in `JavyAI/sector-data` runs on the 1st of every month and auto-commits new Shiller rows from the upstream public source. You can also trigger it manually via the [Actions tab](https://github.com/JavyAI/sector-data/actions/workflows/update-shiller.yml) → "Run workflow". After the workflow commits new data, call `POST /api/shiller/refresh` to pull it into the backend.
 
 ---
 
