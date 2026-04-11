@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775924112632,
+  "projectRoot": "/Users/javyai/AIProjects/sector-charts/frontend",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.2.0",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "5.0.0",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "1.0.0",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview",
+      "test": "vitest"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 1,
+      "lastAccessed": 1775924112623,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 5,
+      "lastAccessed": 1775924112623,
+      "keyFiles": [
+        "App.css",
+        "App.tsx",
+        "index.css",
+        "main.tsx",
+        "types.ts"
+      ]
+    },
+    "dist/assets": {
+      "path": "dist/assets",
+      "purpose": "Static assets",
+      "fileCount": 2,
+      "lastAccessed": 1775924112625,
+      "keyFiles": [
+        "index-6G7qS01T.css",
+        "index-BZNTntQ5.js"
+      ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 10,
+      "lastAccessed": 1775924112625,
+      "keyFiles": [
+        "CapVsEqualToggle.css",
+        "CapVsEqualToggle.tsx",
+        "DateRangePicker.css"
+      ]
+    },
+    "src/services": {
+      "path": "src/services",
+      "purpose": "Business logic services",
+      "fileCount": 1,
+      "lastAccessed": 1775924112625,
+      "keyFiles": [
+        "api.ts"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

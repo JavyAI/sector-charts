@@ -1,45 +1,72 @@
-/* SectorChart.css */
-.sector-chart-container {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 40px;
+.chart-wrapper {
+  width: 100%;
+  margin: 20px 0;
 }
 
-.chart-mode-label {
-  text-align: center;
-  font-size: 1.2em;
+.chart-title {
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 20px;
   color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.chart-container-inner {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .chart-legend {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-}
-
-.legend-title {
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.legend-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 13px;
+  color: #666;
 }
 
 .legend-color {
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   border-radius: 2px;
+}
+
+.chart-error {
+  padding: 20px;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c33;
+  font-size: 14px;
+  text-align: center;
+}
+
+.chart-loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .chart-container-inner {
+    padding: 10px;
+  }
+
+  .chart-title {
+    font-size: 16px;
+  }
+
+  .chart-legend {
+    gap: 15px;
+  }
 }

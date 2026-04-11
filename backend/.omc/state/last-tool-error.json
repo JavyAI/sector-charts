@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd frontend && npm run dev > /tmp/frontend.log 2>&1 &\",\"description\":\"Start frontend dev server\"}",
+  "error": "Exit code 1\n(eval):cd:1: no such file or directory: frontend",
+  "timestamp": "2026-04-11T16:15:33.890Z",
+  "retry_count": 1
+}

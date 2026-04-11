@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"npm run build 2>&1\"}",
+  "error": "Exit code 1\n\n> sector-charts-frontend@1.0.0 build\n> tsc && vite build\n\nvite v5.4.21 building for production...\ntransforming...\n✓ 6 modules transformed.\nx Build failed in 34ms\nerror during build:\nCould not resolve \"./App.css\" from \"src/App.tsx\"\nfile: /Users/javyai/AIProjects/sector-charts/frontend/src/App.tsx\n    at getRollupError (file:///Users/javyai/AIProjects/sector-charts/frontend/node_modules/rollup/dist/es/shared/parseAst.js:406:41)\n    at error (file:///Users/javyai/AIProjects/sector-char...",
+  "timestamp": "2026-04-11T16:13:57.648Z",
+  "retry_count": 2
+}

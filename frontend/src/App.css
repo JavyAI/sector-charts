@@ -1,0 +1,38 @@
+.app {
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.app-header h1 {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.app-header p {
+  font-size: 14px;
+  color: #666;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}

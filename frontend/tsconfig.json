@@ -15,7 +15,8 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vitest/globals"]
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

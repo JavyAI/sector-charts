@@ -12,3 +12,8 @@ export interface SectorDataResponse {
   date: string;
   sectors: SectorMetric[];
 }
+
+export interface SectorHistoryResponse {
+  sector: string;
+  history: SectorMetric[];
+}

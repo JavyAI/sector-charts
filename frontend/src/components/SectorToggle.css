@@ -1,20 +1,45 @@
-/* SectorToggle.css */
-.sector-toggle {
-  padding: 8px 16px;
-  border: 2px solid #ddd;
+.sector-toggle-container {
+  padding: 15px;
+  background-color: #f9f9f9;
   border-radius: 4px;
-  background: white;
+}
+
+.sector-toggle-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.sector-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.sector-button {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
   cursor: pointer;
+  font-size: 13px;
   transition: all 0.2s;
+  text-align: center;
 }
 
-.sector-toggle:hover {
-  border-color: #1976d2;
-  color: #1976d2;
+.sector-button:hover {
+  border-color: #007bff;
+  background-color: #f0f7ff;
 }
 
-.sector-toggle.active {
-  background: #1976d2;
+.sector-button.active {
+  background-color: #007bff;
   color: white;
-  border-color: #1976d2;
+  border-color: #007bff;
+}
+
+.sector-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -1,34 +1,42 @@
-/* TimelapseControl.css */
-.timelapse-control {
+.timelapse-container {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.timelapse-control label {
-  font-weight: 600;
-}
-
-.controls {
-  display: flex;
-  gap: 4px;
-}
-
-.controls button {
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  background: white;
-  cursor: pointer;
+  gap: 15px;
+  padding: 10px 15px;
+  background-color: #f9f9f9;
   border-radius: 4px;
+}
+
+.timelapse-button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  font-size: 14px;
   transition: all 0.2s;
 }
 
-.controls button:hover {
-  background: #f0f0f0;
+.timelapse-button:hover {
+  background-color: #f0f0f0;
+  border-color: #007bff;
 }
 
-.controls button.playing {
-  background: #ff9800;
+.timelapse-button.active {
+  background-color: #007bff;
   color: white;
-  border-color: #ff9800;
+  border-color: #007bff;
+}
+
+.timelapse-slider {
+  flex: 1;
+  min-width: 200px;
+}
+
+.timelapse-date {
+  min-width: 100px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }

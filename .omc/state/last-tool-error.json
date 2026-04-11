@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ls /Users/javyai/AIProjects/sector-charts/*.json /Users/javyai/AIProjects/sector-charts/package.json 2>&1\",\"description\":\"Check root package.json\"}",
+  "error": "Exit code 1\nls: /Users/javyai/AIProjects/sector-charts/package.json: No such file or directory\n/Users/javyai/AIProjects/sector-charts/railway.json",
+  "timestamp": "2026-04-11T18:55:28.205Z",
+  "retry_count": 1
+}
