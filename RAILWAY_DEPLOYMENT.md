@@ -121,6 +121,61 @@ No manual re-deployment needed.
 - **Horizontal**: If you need multiple instances, Railway handles load balancing automatically
 - **Database**: SQLite is single-writer; for multi-instance deployments, migrate to PostgreSQL
 
+## Configuring Private Constituents Source
+
+The backend fetches the S&P 500 constituent list from a private GitHub repo (`javyai/sector-data`) using the GitHub REST API. You must configure a GitHub Personal Access Token so the backend can read from that private repo.
+
+### Step 1: Create a GitHub Personal Access Token
+
+**Option A — Classic token (simpler):**
+1. Go to https://github.com/settings/tokens/new
+2. Set a note, e.g. "sector-charts constituents read"
+3. Set expiration as desired
+4. Under **Scopes**, check **`repo`** (grants read access to all private repos)
+5. Click **Generate token** and copy the value (starts with `ghp_`)
+
+**Option B — Fine-grained token (more secure, recommended):**
+1. Go to https://github.com/settings/personal-access-tokens/new
+2. Set a name, e.g. "sector-charts constituents"
+3. Under **Repository access**, select **Only select repositories** → choose `javyai/sector-data`
+4. Under **Permissions → Repository permissions**, set **Contents** to **Read-only**
+5. Click **Generate token** and copy the value (starts with `github_pat_`)
+
+### Step 2: Set Environment Variables on Railway
+
+In Railway's **Environment** tab (or via CLI), add:
+
+```
+GITHUB_TOKEN=<your_token_from_step_1>
+CONSTITUENTS_REPO=javyai/sector-data
+CONSTITUENTS_FILE_PATH=constituents.csv
+```
+
+Via Railway CLI:
+```bash
+cd /Users/javyai/AIProjects/sector-charts
+railway variables --set "CONSTITUENTS_REPO=javyai/sector-data" --set "CONSTITUENTS_FILE_PATH=constituents.csv"
+# Set GITHUB_TOKEN manually in the Railway dashboard (do not paste tokens in shell history)
+```
+
+### Step 3: Verify the Integration
+
+Once deployed with the token set, trigger a refresh:
+```bash
+curl -X POST https://<your-railway-url>/api/constituents/refresh
+```
+
+You should get back a JSON response confirming ~500 constituents were loaded from the private repo.
+
+### Updating Your Constituent List
+
+To add, remove, or modify constituents:
+1. Edit `constituents.csv` in https://github.com/javyai/sector-data
+2. Commit and push
+3. Call `POST /api/constituents/refresh` to pull in the changes
+
+---
+
 ## Frontend Hosting (Not Required — You'll Keep It Local)
 
 Your frontend runs locally on `http://localhost:5173` (dev) or can be built and served locally.
