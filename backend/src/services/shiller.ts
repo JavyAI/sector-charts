@@ -1,5 +1,8 @@
-import axios from 'axios';
+import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { getDatabase } from '../db/connection.js';
+import { fetchPrivateCsvFromGitHub } from './privateDataSource.js';
+import { validateShillerCsv } from '../utils/validation.js';
 
 export interface ShillerDataPoint {
   date: string;
@@ -24,10 +27,6 @@ export interface MarketPEStats {
   p75: number;
 }
 
-const SHILLER_JSON_URL = 'https://posix4e.github.io/shiller_wrapper_data/data.json';
-const SHILLER_CSV_URL =
-  'https://raw.githubusercontent.com/datasets/s-and-p-500/main/data/data.csv';
-
 function parseNumber(val: string | number | null | undefined): number {
   if (val === null || val === undefined || val === '') return 0;
   const n = typeof val === 'number' ? val : parseFloat(String(val));
@@ -35,8 +34,9 @@ function parseNumber(val: string | number | null | undefined): number {
 }
 
 function normalizeDate(raw: string): string {
-  // Accepts "1871-01-01" or "1871-01" formats — normalize to YYYY-MM-01
-  const parts = raw.trim().split('-');
+  // Accepts "1871-01-01", "1871-01", or "1871.01" formats — normalize to YYYY-MM-01
+  const cleaned = raw.trim().replace(/\./g, '-');
+  const parts = cleaned.split('-');
   const year = parts[0] || '1970';
   const month = parts[1] || '01';
   return `${year}-${month}-01`;
@@ -53,17 +53,24 @@ function parseCSV(csv: string): ShillerDataPoint[] {
     const dateRaw = cols[0].trim();
     if (!dateRaw) continue;
 
+    const sp500Price = parseNumber(cols[1]);
+    const earnings = parseNumber(cols[3]);
+
+    // Compute trailing P/E as SP500 / Earnings (annualized earnings per share)
+    // Earnings in Shiller data is already annual ($/share)
+    const peRatio = earnings > 0 ? sp500Price / earnings : 0;
+
     points.push({
       date: normalizeDate(dateRaw),
-      sp500Price: parseNumber(cols[1]),
+      sp500Price,
       dividend: parseNumber(cols[2]),
-      earnings: parseNumber(cols[3]),
+      earnings,
       cpi: parseNumber(cols[4]),
       longRate: parseNumber(cols[5]),
       realPrice: parseNumber(cols[6]),
       realDividend: parseNumber(cols[7]),
       realEarnings: parseNumber(cols[8]),
-      peRatio: 0, // not in CSV directly — computed or left 0
+      peRatio,
       cape: parseNumber(cols[9]),
     });
   }
@@ -71,52 +78,24 @@ function parseCSV(csv: string): ShillerDataPoint[] {
   return points;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseJSON(data: any[]): ShillerDataPoint[] {
-  return data.map((row) => ({
-    date: normalizeDate(String(row.date || row.Date || '')),
-    sp500Price: parseNumber(row.sp500 || row.SP500 || row.price),
-    dividend: parseNumber(row.dividend || row.Dividend),
-    earnings: parseNumber(row.earnings || row.Earnings),
-    cpi: parseNumber(row.cpi || row['Consumer Price Index']),
-    longRate: parseNumber(row.longRate || row['Long Interest Rate']),
-    realPrice: parseNumber(row.realPrice || row['Real Price']),
-    realDividend: parseNumber(row.realDividend || row['Real Dividend']),
-    realEarnings: parseNumber(row.realEarnings || row['Real Earnings']),
-    peRatio: parseNumber(row.peRatio || row.pe || row.PE),
-    cape: parseNumber(row.cape || row.CAPE || row.PE10),
-  }));
-}
-
 export async function fetchShillerData(): Promise<ShillerDataPoint[]> {
-  // Try JSON first
-  try {
-    const response = await axios.get(SHILLER_JSON_URL, { timeout: 15000 });
-    if (response.status === 200 && Array.isArray(response.data)) {
-      const points = parseJSON(response.data);
-      if (points.length > 0) {
-        return points;
-      }
-    }
-  } catch {
-    // fall through to CSV
+  const filePath = config.shiller.filePath;
+
+  const csvData = await fetchPrivateCsvFromGitHub({ filePath });
+
+  const validation = validateShillerCsv(csvData);
+  if (!validation.valid) {
+    const msg = `Shiller CSV validation failed: ${validation.errors.join('; ')}`;
+    logger.error({ errors: validation.errors }, msg);
+    throw new Error(msg);
   }
 
-  // CSV fallback
-  const response = await axios.get(SHILLER_CSV_URL, {
-    timeout: 30000,
-    responseType: 'text',
-  });
-
-  if (response.status !== 200) {
-    throw new Error(`Failed to fetch Shiller CSV: HTTP ${response.status}`);
-  }
-
-  const points = parseCSV(response.data as string);
+  const points = parseCSV(csvData);
   if (points.length === 0) {
     throw new Error('Shiller CSV parsed to 0 data points');
   }
 
+  logger.info({ count: points.length }, 'Shiller data parsed from private repo');
   return points;
 }
 

@@ -1,7 +1,8 @@
-import axios from 'axios';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { getDatabase } from '../db/connection.js';
+import { fetchPrivateCsvFromGitHub } from './privateDataSource.js';
+import { validateConstituentsCsv } from '../utils/validation.js';
 
 export interface Constituent {
   symbol: string;
@@ -78,47 +79,18 @@ function splitCsvLine(line: string): string[] {
 }
 
 export async function fetchConstituentsFromGitHub(): Promise<Constituent[]> {
-  const { repo, filePath, githubToken } = config.constituents;
+  const filePath = config.constituents.filePath;
 
-  if (!githubToken) {
-    throw new Error('GITHUB_TOKEN env var is required to fetch constituents from private repo');
+  const csvData = await fetchPrivateCsvFromGitHub({ filePath });
+
+  const validation = validateConstituentsCsv(csvData);
+  if (!validation.valid) {
+    const msg = `Constituents CSV validation failed: ${validation.errors.join('; ')}`;
+    logger.error({ errors: validation.errors }, msg);
+    throw new Error(msg);
   }
 
-  const url = `https://api.github.com/repos/${repo}/contents/${filePath}`;
-
-  let responseData: string;
-  try {
-    const response = await axios.get<string>(url, {
-      responseType: 'text',
-      timeout: 30_000,
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: 'application/vnd.github.v3.raw',
-      },
-    });
-    responseData = response.data;
-  } catch (err) {
-    if (axios.isAxiosError(err) && err.response) {
-      const status = err.response.status;
-      if (status === 401 || status === 403) {
-        logger.error({ status, repo, filePath }, 'GitHub token is invalid or lacks repo read scope');
-        throw new Error(
-          `GitHub API returned ${status}: token is invalid or lacks repo read scope. ` +
-            'Ensure GITHUB_TOKEN has "repo" scope (classic) or "Contents: Read" (fine-grained).',
-        );
-      }
-      if (status === 404) {
-        logger.error({ status, repo, filePath }, 'GitHub repo or file not found');
-        throw new Error(
-          `GitHub API returned 404: repo "${repo}" or file "${filePath}" not found. ` +
-            'Check CONSTITUENTS_REPO and CONSTITUENTS_FILE_PATH env vars.',
-        );
-      }
-    }
-    throw err;
-  }
-
-  const rows = parseCsv(responseData);
+  const rows = parseCsv(csvData);
 
   const constituents: Constituent[] = [];
   for (const row of rows) {
