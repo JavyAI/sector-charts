@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   ComposedChart,
   Bar,
-  Line,
+  Cell,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -62,13 +62,20 @@ export default function SectorChart({ data, visibleSectors, displayMode }: Secto
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" />
           <YAxis dataKey="sector" type="category" width={140} />
-          <Tooltip formatter={(value) => value?.toFixed(1)} />
-          <Bar dataKey="peRatio" fill="#8884d8" />
+          <Tooltip formatter={(value: number) => value?.toFixed(1)} />
+          <Bar dataKey="peRatio">
+            {visibleData.map((entry) => (
+              <Cell
+                key={entry.sector}
+                fill={COLORS[entry.sector as keyof typeof COLORS] || '#999'}
+              />
+            ))}
+          </Bar>
         </ComposedChart>
       </ResponsiveContainer>
 
       <div className="chart-legend">
-        <p className="legend-title">Sector Legend</p>
+        <h3 className="legend-title">Sector Legend</h3>
         <div className="legend-items">
           {data.map((sector) => (
             <div key={sector.sector} className="legend-item">
