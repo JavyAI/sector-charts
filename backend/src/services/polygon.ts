@@ -7,10 +7,6 @@ interface PolygonTicker {
   ticker: string;
   name: string;
   market_cap: number | null;
-  last_quote: {
-    bid: number;
-    ask: number;
-  };
 }
 
 interface PolygonFundamentals {
@@ -57,7 +53,7 @@ export class PolygonService {
     if (this.isProcessing || this.requestQueue.length === 0) return;
 
     this.isProcessing = true;
-    const startTime = Date.now();
+    let startTime = Date.now();
     let requestCount = 0;
 
     while (this.requestQueue.length > 0) {
@@ -67,6 +63,8 @@ export class PolygonService {
       if (requestCount >= config.rateLimiting.requests && timeInWindow < config.rateLimiting.windowMs) {
         const waitTime = config.rateLimiting.windowMs - timeInWindow;
         await new Promise((resolve) => setTimeout(resolve, waitTime));
+        startTime = Date.now();
+        requestCount = 0;
       }
 
       const request = this.requestQueue.shift();
@@ -84,10 +82,15 @@ export class PolygonService {
    */
   async getSP500Constituents(): Promise<string[]> {
     return this.queueRequest(async () => {
-      const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/indices/constituents/GSPC`, {
-        params: { apikey: this.apiKey },
-      });
-      return response.data.results || [];
+      try {
+        const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/indices/constituents/GSPC`, {
+          params: { apikey: this.apiKey },
+        });
+        return (response.data.results || []).map((item: any) => item.ticker || item.symbol);
+      } catch (error) {
+        console.error('Failed to fetch S&P 500 constituents:', error);
+        return [];
+      }
     });
   }
 
@@ -119,7 +122,7 @@ export class PolygonService {
           params.date = date;
         }
 
-        const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/tickers/${symbol}/financials`, params);
+        const response = await axios.get(`${POLYGON_BASE_URL}/v3/reference/tickers/${symbol}/financials`, { params });
         return response.data.results?.[0] || null;
       } catch (error) {
         console.error(`Error fetching fundamentals for ${symbol}:`, error);
