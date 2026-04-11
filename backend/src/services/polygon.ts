@@ -71,9 +71,20 @@ export class PolygonService {
       const now = Date.now();
       const timeInWindow = now - this.windowStartTime;
 
-      if (this.windowRequestCount >= config.rateLimiting.requests && timeInWindow < config.rateLimiting.windowMs) {
-        const waitTime = config.rateLimiting.windowMs - timeInWindow;
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      // ALWAYS reset window if it's expired
+      if (timeInWindow >= config.rateLimiting.windowMs) {
+        this.windowStartTime = now;
+        this.windowRequestCount = 0;
+      }
+
+      // Now check if we need to throttle
+      if (this.windowRequestCount >= config.rateLimiting.requests) {
+        const waitTime = config.rateLimiting.windowMs - (Date.now() - this.windowStartTime);
+        if (waitTime > 0) {
+          console.log(`Rate limit reached. Waiting ${waitTime}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+        }
+        // After waiting, reset window for the new request
         this.windowStartTime = Date.now();
         this.windowRequestCount = 0;
       }
