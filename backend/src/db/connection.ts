@@ -15,16 +15,18 @@ export const getDatabase = (): Database.Database => {
   return db;
 };
 
-export const initializeDatabase = async (): Promise<void> => {
+export const initializeDatabase = (): void => {
   const dbPath = config.databasePath.startsWith('/')
     ? config.databasePath
     : path.join(process.cwd(), config.databasePath);
 
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
 
   createSchema(db);
 
+  // TODO: Replace with structured logger (pino, winston) for production
   console.log(`Database initialized at ${dbPath}`);
 };
 

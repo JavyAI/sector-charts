@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import path from 'path';
 
 export const createSchema = (db: Database.Database) => {
   // S&P 500 constituents
