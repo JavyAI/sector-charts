@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { initializeDatabase } from './db/connection.js';
 import sectorsRouter from './routes/sectors.js';
+import constituentsRouter from './routes/constituents.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -22,13 +23,14 @@ try {
   process.exit(1);
 }
 
-// Health check
+// Health check — Railway uses this endpoint as its healthcheck target (see railway.json)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
 // Routes
 app.use('/api/sectors', sectorsRouter);
+app.use('/api/constituents', constituentsRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
