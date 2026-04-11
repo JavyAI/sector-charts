@@ -23,7 +23,7 @@ if (isNaN(rateLimitWindowMs) || rateLimitWindowMs < 1) {
 }
 
 const nodeEnv = process.env.NODE_ENV || 'development';
-const corsOrigin = process.env.CORS_ORIGIN || (nodeEnv === 'production' ? 'https://yourdomain.com' : 'http://localhost:3000');
+const corsOrigin = process.env.CORS_ORIGIN || (nodeEnv === 'production' ? 'https://yourdomain.com' : 'http://localhost:5173');
 
 export const config = {
   polygonApiKey: process.env.POLYGON_API_KEY || '',
