@@ -12,7 +12,7 @@ function App() {
     new Date().toISOString().split('T')[0]
   );
   const [visibleSectors, setVisibleSectors] = useState<Set<string>>(
-    new Set(['Technology', 'Financials', 'Energy', 'Consumer Discretionary'])
+    new Set(['Information Technology', 'Financials', 'Energy', 'Consumer Discretionary'])
   );
   const [displayMode, setDisplayMode] = useState<'cap-weighted' | 'equal-weight'>('cap-weighted');
   const { data, loading, error } = useSectorData(selectedDate);
