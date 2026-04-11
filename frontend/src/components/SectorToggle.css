@@ -1,0 +1,20 @@
+/* SectorToggle.css */
+.sector-toggle {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sector-toggle:hover {
+  border-color: #1976d2;
+  color: #1976d2;
+}
+
+.sector-toggle.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
