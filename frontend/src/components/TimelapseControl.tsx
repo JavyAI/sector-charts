@@ -30,13 +30,13 @@ export default function TimelapseControl({ onDateChange, currentDate }: Timelaps
     <div className="timelapse-control">
       <label>Time-Lapse:</label>
       <div className="controls">
-        <button onClick={handleStepBackward} title="Previous day">
+        <button type="button" onClick={handleStepBackward} title="Previous day">
           ⏮ Back
         </button>
-        <button onClick={handlePlayPause} className={isPlaying ? 'playing' : ''}>
+        <button type="button" onClick={handlePlayPause} className={isPlaying ? 'playing' : ''}>
           {isPlaying ? '⏸ Pause' : '▶ Play'}
         </button>
-        <button onClick={handleStepForward} title="Next day">
+        <button type="button" onClick={handleStepForward} title="Next day">
           Forward ⏭
         </button>
       </div>
