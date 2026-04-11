@@ -76,7 +76,6 @@ router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
     ...current,
     peRatioPctChange5Yr,
     peRatioPctChange10Yr,
-    ytdReturn: 0,
   });
 }));
 
