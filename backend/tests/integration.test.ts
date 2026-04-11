@@ -8,8 +8,8 @@ import { sectorService } from '../src/services/sector.js';
 import { StockFundamental } from '../src/types.js';
 
 describe('Integration Tests', () => {
-  beforeAll(async () => {
-    await initializeDatabase();
+  beforeAll(() => {
+    initializeDatabase();
   });
 
   afterAll(() => {
@@ -44,6 +44,14 @@ describe('Integration Tests', () => {
     sectorService.storeSectorMetrics([metrics]);
 
     const retrieved = sectorService.getSectorsForDate('2024-04-11');
-    expect(retrieved).toContainEqual(expect.objectContaining({ sector: 'Technology' }));
+
+    // Stronger assertions
+    expect(retrieved).toHaveLength(1);
+    expect(retrieved[0]).toMatchObject({
+      sector: 'Technology',
+      constituents: 2,
+      weightedPeRatio: expect.any(Number),
+      equalWeightPeRatio: expect.any(Number),
+    });
   });
 });
