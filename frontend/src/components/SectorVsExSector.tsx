@@ -5,6 +5,7 @@ import ChartTooltip from './ChartTooltip';
 
 interface SectorVsExSectorProps {
   sectors: SectorMetric[];
+  onSectorClick?: (sector: string) => void;
 }
 
 interface TooltipState {
@@ -27,7 +28,7 @@ function fmt(v: number) {
   return `${v.toFixed(1)}x`;
 }
 
-export default function SectorVsExSector({ sectors }: SectorVsExSectorProps) {
+export default function SectorVsExSector({ sectors, onSectorClick }: SectorVsExSectorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
   const [mounted, setMounted] = useState(false);
@@ -181,6 +182,7 @@ export default function SectorVsExSector({ sectors }: SectorVsExSectorProps) {
                 onMouseEnter={e => handleMouseEnter(e, row)}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
+                onClick={onSectorClick ? () => onSectorClick(row.sector) : undefined}
                 style={{ cursor: 'pointer' }}
               >
                 {/* Row hover target */}

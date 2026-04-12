@@ -5,6 +5,7 @@ import ChartTooltip from './ChartTooltip';
 
 interface PeHistoricalComparisonProps {
   sectors: SectorMetric[];
+  onSectorClick?: (sector: string) => void;
 }
 
 interface TooltipState {
@@ -62,7 +63,7 @@ function fmtPE(v: number): string {
   return `${v.toFixed(1)}x`;
 }
 
-export default function PeHistoricalComparison({ sectors }: PeHistoricalComparisonProps) {
+export default function PeHistoricalComparison({ sectors, onSectorClick }: PeHistoricalComparisonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
   const [mounted, setMounted] = useState(false);
@@ -296,6 +297,8 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
                   fontSize={11}
                   fill={CHART_COLORS.mutedText}
                   transform={labelRotate}
+                  style={onSectorClick && row.label !== 'S&P 500' ? { cursor: 'pointer' } : undefined}
+                  onClick={onSectorClick && row.label !== 'S&P 500' ? () => onSectorClick(row.label) : undefined}
                 >
                   {SHORT_LABELS[row.label] ?? row.label}
                 </text>

@@ -6,6 +6,7 @@ interface SectorChartProps {
   data: SectorMetric[];
   visibleSectors: Set<string>;
   displayMode: 'cap-weighted' | 'equal-weight';
+  onSectorClick?: (sector: string) => void;
 }
 
 // GICS official sector names (11 sectors)
@@ -25,7 +26,7 @@ const COLORS: Record<string, string> = {
 
 const DEFAULT_COLOR = 'gray';
 
-export default function SectorChart({ data, visibleSectors, displayMode }: SectorChartProps) {
+export default function SectorChart({ data, visibleSectors, displayMode, onSectorClick }: SectorChartProps) {
   const chartData = useMemo(() => {
     return data
       .filter((s) => visibleSectors.has(s.sector))
@@ -60,6 +61,7 @@ export default function SectorChart({ data, visibleSectors, displayMode }: Secto
         showLegend={false}
         showGridLines={true}
         showAnimation={true}
+        onValueChange={onSectorClick ? (v) => { if (v && v.sector) onSectorClick(v.sector as string); } : undefined}
       />
     </Card>
   );

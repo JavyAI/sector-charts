@@ -5,6 +5,7 @@ import ChartTooltip from './ChartTooltip';
 
 interface CapVsEqualWeightProps {
   sectors: SectorMetric[];
+  onSectorClick?: (sector: string) => void;
 }
 
 interface TooltipState {
@@ -33,7 +34,7 @@ function divergencePct(cap: number, equal: number): number {
   return Math.abs(cap - equal) / cap;
 }
 
-export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
+export default function CapVsEqualWeight({ sectors, onSectorClick }: CapVsEqualWeightProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
   const [mounted, setMounted] = useState(false);
@@ -171,6 +172,7 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
                 onMouseEnter={e => handleMouseEnter(e, sector)}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
+                onClick={onSectorClick ? () => onSectorClick(sector.sector) : undefined}
                 style={{ cursor: 'pointer' }}
               >
                 {/* Yellow highlight for high-divergence rows */}

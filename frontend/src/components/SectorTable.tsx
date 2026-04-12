@@ -14,6 +14,7 @@ import { SectorMetric } from '../types';
 
 interface SectorTableProps {
   sectors: SectorMetric[];
+  onSectorClick?: (sector: string) => void;
 }
 
 type SortKey = 'sector' | 'weightedPeRatio' | 'equalWeightPeRatio' | 'weightedMarketCap' | 'constituents';
@@ -25,7 +26,7 @@ function formatMarketCap(cap: number): string {
   return `$${(cap / 1e6).toFixed(1)}M`;
 }
 
-export default function SectorTable({ sectors }: SectorTableProps) {
+export default function SectorTable({ sectors, onSectorClick }: SectorTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('weightedPeRatio');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
@@ -85,7 +86,12 @@ export default function SectorTable({ sectors }: SectorTableProps) {
           {sorted.map((sector) => (
             <TableRow key={sector.sector}>
               <TableCell>
-                <Text className="font-medium">{sector.sector}</Text>
+                <Text
+                  className={`font-medium${onSectorClick ? ' cursor-pointer hover:text-blue-500 hover:underline' : ''}`}
+                  onClick={onSectorClick ? () => onSectorClick(sector.sector) : undefined}
+                >
+                  {sector.sector}
+                </Text>
               </TableCell>
               <TableCell>
                 <Text>{sector.weightedPeRatio.toFixed(1)}</Text>
