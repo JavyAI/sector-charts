@@ -8,6 +8,7 @@ import sectorsRouter from './routes/sectors.js';
 import constituentsRouter from './routes/constituents.js';
 import shillerRouter from './routes/shiller.js';
 import stockPricesRouter from './routes/stockPrices.js';
+import subSectorsRouter from './routes/subSectors.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './logger.js';
 
@@ -38,6 +39,7 @@ app.use('/api/sectors', sectorsRouter);
 app.use('/api/constituents', constituentsRouter);
 app.use('/api/shiller', shillerRouter);
 app.use('/api/stock-prices', stockPricesRouter);
+app.use('/api/sub-sectors', subSectorsRouter);
 
 // Serve frontend static files (production build)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
