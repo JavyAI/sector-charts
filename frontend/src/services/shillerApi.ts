@@ -23,3 +23,24 @@ export async function fetchMarketPE(years: number = 10): Promise<MarketPERespons
   const response = await api.get<MarketPEResponse>(`/shiller/market-pe?years=${years}`);
   return response.data;
 }
+
+export interface ShillerHistoryPoint {
+  date: string;
+  cape: number;
+  price?: number;
+  earnings?: number;
+}
+
+export interface ShillerHistoryResponse {
+  data: ShillerHistoryPoint[];
+}
+
+export async function fetchShillerHistory(
+  start: string,
+  end: string
+): Promise<ShillerHistoryResponse> {
+  const response = await api.get<ShillerHistoryResponse>('/shiller/history', {
+    params: { start, end },
+  });
+  return response.data;
+}

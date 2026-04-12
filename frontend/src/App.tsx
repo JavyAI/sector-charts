@@ -1,74 +1,118 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Callout, Flex, Grid, Title, Subtitle } from '@tremor/react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
 import TimelapseControl from './components/TimelapseControl';
-import SectorToggle from './components/SectorToggle';
+import SectorFilter from './components/SectorFilter';
 import CapVsEqualToggle from './components/CapVsEqualToggle';
 import { MarketContextCard } from './components/MarketContextCard';
+import KpiHeader from './components/KpiHeader';
+import SectorAllocation from './components/SectorAllocation';
+import SectorTable from './components/SectorTable';
+import DarkModeToggle from './components/DarkModeToggle';
 import { useSectorData } from './hooks/useSectorData';
-import './App.css';
+
+// Initialize dark mode from localStorage before first render
+const stored = (() => {
+  try { return localStorage.getItem('darkMode'); } catch { return null; }
+})();
+if (stored === null || stored === 'true') {
+  document.documentElement.classList.add('dark');
+} else {
+  document.documentElement.classList.remove('dark');
+}
 
 function App() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
-  const [visibleSectors, setVisibleSectors] = useState<Set<string>>(
-    new Set(['Information Technology', 'Financials', 'Energy', 'Consumer Discretionary'])
-  );
+  const [visibleSectors, setVisibleSectors] = useState<Set<string>>(new Set<string>());
   const [displayMode, setDisplayMode] = useState<'cap-weighted' | 'equal-weight'>('cap-weighted');
   const { data, loading, error } = useSectorData(selectedDate);
 
-  const toggleSector = (sector: string) => {
-    const newVisible = new Set(visibleSectors);
-    if (newVisible.has(sector)) {
-      newVisible.delete(sector);
-    } else {
-      newVisible.add(sector);
+  // Once data loads, default all sectors visible
+  useEffect(() => {
+    if (data && visibleSectors.size === 0) {
+      setVisibleSectors(new Set(data.sectors.map((s) => s.sector)));
     }
-    setVisibleSectors(newVisible);
-  };
+  }, [data, visibleSectors.size]);
 
   return (
-    <div className="app">
-      <header className="app-header">
-        <h1>S&P 500 Sector Valuations</h1>
-        <p>Live P/E Ratios vs Historical Averages</p>
-      </header>
+    <div className="min-h-screen bg-tremor-background dark:bg-dark-tremor-background">
+      <div className="max-w-7xl mx-auto px-4 py-6">
 
-      <MarketContextCard years={10} />
+        {/* Header Bar */}
+        <Flex justifyContent="between" alignItems="center" className="mb-6">
+          <div>
+            <Title className="text-2xl font-bold">S&P 500 Sector Valuations</Title>
+            <Subtitle>Live P/E Ratios vs Historical Averages</Subtitle>
+          </div>
+          <DarkModeToggle />
+        </Flex>
 
-      <div className="controls-panel">
-        <DateRangePicker value={selectedDate} onChange={setSelectedDate} />
-        <CapVsEqualToggle
-          mode={displayMode}
-          onChange={setDisplayMode}
-        />
-        <TimelapseControl
-          onDateChange={setSelectedDate}
-          currentDate={selectedDate}
-        />
+        {/* KPI Row */}
+        {data && <KpiHeader sectors={data.sectors} />}
+
+        {/* Controls Panel */}
+        <div className="bg-tremor-background-subtle dark:bg-dark-tremor-background-subtle rounded-tremor-default p-4 mb-6">
+          <Flex flexDirection="row" justifyContent="start" className="gap-4 flex-wrap">
+            <DateRangePicker value={selectedDate} onChange={setSelectedDate} />
+            <CapVsEqualToggle mode={displayMode} onChange={setDisplayMode} />
+            <TimelapseControl onDateChange={setSelectedDate} currentDate={selectedDate} />
+          </Flex>
+
+          {/* Sector Filter */}
+          {data && (
+            <div className="mt-3">
+              <SectorFilter
+                sectors={data.sectors}
+                visibleSectors={visibleSectors}
+                onChange={setVisibleSectors}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Loading / Error States */}
+        {loading && (
+          <Callout title="Loading" color="yellow" className="mb-4">
+            Fetching sector data…
+          </Callout>
+        )}
+        {error && (
+          <Callout title="Error loading data" color="red" className="mb-4">
+            {error}
+          </Callout>
+        )}
+
+        {/* Main Content: Chart + Allocation side by side */}
+        {data && (
+          <>
+            <Grid numItems={1} numItemsLg={2} className="gap-6 mb-6">
+              <div>
+                <SectorChart
+                  data={data.sectors}
+                  visibleSectors={visibleSectors}
+                  displayMode={displayMode}
+                />
+                <div className="mt-4">
+                  <TimelapseControl
+                    onDateChange={setSelectedDate}
+                    currentDate={selectedDate}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-4">
+                <SectorAllocation sectors={data.sectors} />
+                <MarketContextCard years={10} />
+              </div>
+            </Grid>
+
+            {/* Full-width Sector Table */}
+            <SectorTable sectors={data.sectors} />
+          </>
+        )}
       </div>
-
-      <div className="sectors-toggle">
-        {data?.sectors.map((sector) => (
-          <SectorToggle
-            key={sector.sector}
-            sector={sector.sector}
-            isVisible={visibleSectors.has(sector.sector)}
-            onToggle={toggleSector}
-          />
-        ))}
-      </div>
-
-      {loading && <div className="loading">Loading data...</div>}
-      {error && <div className="error">Error: {error}</div>}
-      {data && (
-        <SectorChart
-          data={data.sectors}
-          visibleSectors={visibleSectors}
-          displayMode={displayMode}
-        />
-      )}
     </div>
   );
 }
