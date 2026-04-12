@@ -41,7 +41,7 @@ function realRate(rows: ShillerRow[], idx: number): number {
   }
   const cpiNow = rows[idx].cpi;
   const cpiThen = rows[idx - lookback].cpi;
-  if (!cpiThen || cpiThen <= 0) return nominalRate;
+  if (!cpiNow || cpiNow <= 0 || !cpiThen || cpiThen <= 0) return nominalRate;
   const annualizedInflation = Math.pow(cpiNow / cpiThen, 1 / 10) - 1;
   return nominalRate - annualizedInflation;
 }
