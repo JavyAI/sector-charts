@@ -21,7 +21,7 @@ export function MarketContextCard({ years = 10 }: MarketContextCardProps) {
     return (
       <Card className="mb-4">
         <Title>Market P/E Context</Title>
-        <Text className="mt-2 text-red-500">Unable to load Shiller data: {error ?? 'no data'}</Text>
+        <Text className="mt-2 text-tremor-content-emphasis">Unable to load Shiller data: {error ?? 'no data'}</Text>
       </Card>
     );
   }

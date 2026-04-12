@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Card, Grid, Metric, Text, BadgeDelta, Flex } from '@tremor/react';
 import { useMarketPE } from '../hooks/useMarketPE';
 import { useLatestMarketPE } from '../hooks/useLatestMarketPE';
+import { useAdjustedCape } from '../hooks/useAdjustedCape';
 import { SectorMetric } from '../types';
 
 interface KpiHeaderProps {
@@ -19,6 +20,7 @@ function getDeltaType(value: number): 'increase' | 'moderateIncrease' | 'unchang
 export default function KpiHeader({ sectors }: KpiHeaderProps) {
   const { data: peData, loading: peLoading } = useMarketPE(10);
   const { latestCape, loading: capeLoading } = useLatestMarketPE();
+  const { data: adjustedData, loading: adjustedLoading } = useAdjustedCape(10);
 
   const hottestSector = useMemo(() => {
     if (!sectors.length) return null;
@@ -33,21 +35,28 @@ export default function KpiHeader({ sectors }: KpiHeaderProps) {
     return ((latestCape - median) / median) * 100;
   }, [latestCape, peData]);
 
+  const capeDiff = useMemo(() => {
+    if (!adjustedData) return null;
+    return adjustedData.traditionalCape - adjustedData.adjustedCape;
+  }, [adjustedData]);
+
   const isLoading = peLoading || capeLoading;
 
   return (
-    <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-4 mb-6">
-      {/* Card 1: Current CAPE */}
+    <Grid numItems={1} numItemsSm={2} numItemsLg={5} className="gap-4 mb-6">
+      {/* Card 1: Adjusted CAPE (replaces raw CAPE) */}
       <Card decoration="top" decorationColor="blue">
-        <Text>Shiller CAPE (Current)</Text>
+        <Text>Shiller CAPE (Adjusted)</Text>
         <Metric className="mt-1">
-          {isLoading ? '—' : latestCape !== null ? latestCape.toFixed(1) : '—'}
+          {adjustedLoading ? '—' : adjustedData ? adjustedData.adjustedCape.toFixed(1) : '—'}
         </Metric>
-        <Text className="mt-1 text-tremor-content-subtle">10-Year Rolling Average</Text>
-        {!isLoading && latestCape !== null && peData && (
+        <Text className="mt-1 text-tremor-content-subtle">
+          Traditional: {isLoading ? '—' : latestCape !== null ? latestCape.toFixed(1) : adjustedData ? adjustedData.traditionalCape.toFixed(1) : '—'}
+        </Text>
+        {!adjustedLoading && adjustedData && capeDiff !== null && (
           <Flex className="mt-2" justifyContent="start">
-            <BadgeDelta deltaType={latestCape > peData.stats.median ? 'increase' : 'decrease'}>
-              vs {peData.stats.median.toFixed(1)} median
+            <BadgeDelta deltaType={capeDiff > 0 ? 'moderateDecrease' : capeDiff < 0 ? 'moderateIncrease' : 'unchanged'}>
+              {capeDiff > 0 ? `-${capeDiff.toFixed(1)}` : `+${Math.abs(capeDiff).toFixed(1)}`} IR adj.
             </BadgeDelta>
           </Flex>
         )}
@@ -109,6 +118,31 @@ export default function KpiHeader({ sectors }: KpiHeaderProps) {
           <Flex className="mt-2" justifyContent="start">
             <BadgeDelta deltaType="increase">
               P/E {hottestSector.weightedPeRatio.toFixed(1)}
+            </BadgeDelta>
+          </Flex>
+        )}
+      </Card>
+
+      {/* Card 5: Excess CAPE Yield */}
+      <Card decoration="top" decorationColor={
+        adjustedLoading || !adjustedData ? 'gray'
+          : adjustedData.excessCapeYield > 2 ? 'green'
+          : adjustedData.excessCapeYield > 0 ? 'yellow'
+          : 'red'
+      }>
+        <Text>Excess CAPE Yield</Text>
+        <Metric className="mt-1">
+          {adjustedLoading ? '—' : adjustedData ? `${adjustedData.excessCapeYield.toFixed(2)}%` : '—'}
+        </Metric>
+        <Text className="mt-1 text-tremor-content-subtle">Equity premium over bonds</Text>
+        {!adjustedLoading && adjustedData && (
+          <Flex className="mt-2" justifyContent="start">
+            <BadgeDelta deltaType={
+              adjustedData.excessCapeYield > 2 ? 'decrease'
+                : adjustedData.excessCapeYield > 0 ? 'unchanged'
+                : 'increase'
+            }>
+              {adjustedData.excessCapeYield > 0 ? 'Stocks vs bonds: favorable' : 'Bonds more attractive'}
             </BadgeDelta>
           </Flex>
         )}
