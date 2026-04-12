@@ -5,6 +5,7 @@ import {
   getShillerDataRange,
   getMarketHistoricalPE,
 } from '../services/shiller.js';
+import { computeAdjustedCape } from '../services/adjustedCape.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -59,6 +60,27 @@ router.post(
     const points = await fetchShillerData();
     storeShillerData(points);
     return res.json({ success: true, count: points.length });
+  }),
+);
+
+// GET /api/shiller/adjusted-cape?years=10
+router.get(
+  '/adjusted-cape',
+  asyncHandler(async (req: Request, res: Response) => {
+    const yearsParam = req.query.years as string | undefined;
+
+    let years: number;
+    if (!yearsParam || yearsParam.toUpperCase() === 'ALL') {
+      years = 0; // 0 means all history
+    } else {
+      years = parseInt(yearsParam, 10);
+      if (isNaN(years) || years < 1) {
+        return res.status(400).json({ error: 'Invalid years parameter. Use a positive integer or ALL.' });
+      }
+    }
+
+    const result = computeAdjustedCape(years);
+    return res.json({ years: years === 0 ? 'ALL' : years, ...result });
   }),
 );
 
