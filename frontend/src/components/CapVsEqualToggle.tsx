@@ -1,33 +1,28 @@
-// src/components/CapVsEqualToggle.tsx
-import './CapVsEqualToggle.css';
+import { TabGroup, TabList, Tab } from '@tremor/react';
 
 interface CapVsEqualToggleProps {
   mode: 'cap-weighted' | 'equal-weight';
   onChange: (mode: 'cap-weighted' | 'equal-weight') => void;
 }
 
+const MODES: Array<'cap-weighted' | 'equal-weight'> = ['cap-weighted', 'equal-weight'];
+const LABELS: Record<string, string> = {
+  'cap-weighted': 'Cap-Weighted',
+  'equal-weight': 'Equal-Weight',
+};
+
 export default function CapVsEqualToggle({ mode, onChange }: CapVsEqualToggleProps) {
+  const index = MODES.indexOf(mode);
+
   return (
-    <div className="mode-toggle">
-      <label>Display Mode:</label>
-      <div className="toggle-buttons">
-        <button
-          type="button"
-          className={`toggle-btn ${mode === 'cap-weighted' ? 'active' : ''}`}
-          onClick={() => onChange('cap-weighted')}
-          aria-pressed={mode === 'cap-weighted'}
-        >
-          Cap-Weighted
-        </button>
-        <button
-          type="button"
-          className={`toggle-btn ${mode === 'equal-weight' ? 'active' : ''}`}
-          onClick={() => onChange('equal-weight')}
-          aria-pressed={mode === 'equal-weight'}
-        >
-          Equal-Weight
-        </button>
-      </div>
-    </div>
+    <TabGroup index={index} onIndexChange={(i) => onChange(MODES[i])}>
+      <TabList variant="solid" className="w-fit">
+        <Tab>Cap-Weighted</Tab>
+        <Tab>Equal-Weight</Tab>
+      </TabList>
+    </TabGroup>
   );
 }
+
+// suppress unused variable warning
+void LABELS;

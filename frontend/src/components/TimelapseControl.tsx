@@ -1,6 +1,5 @@
-// src/components/TimelapseControl.tsx
 import { useState, useEffect } from 'react';
-import './TimelapseControl.css';
+import { Button, Flex, Text } from '@tremor/react';
 
 interface TimelapseControlProps {
   onDateChange: (date: string) => void;
@@ -52,19 +51,31 @@ export default function TimelapseControl({ onDateChange, currentDate }: Timelaps
   };
 
   return (
-    <div className="timelapse-control">
-      <label>Time-Lapse:</label>
-      <div className="controls">
-        <button type="button" onClick={handleStepBackward} title="Previous day">
-          ⏮ Back
-        </button>
-        <button type="button" onClick={handlePlayPause} className={isPlaying ? 'playing' : ''}>
-          {isPlaying ? '⏸ Pause' : '▶ Play'}
-        </button>
-        <button type="button" onClick={handleStepForward} title="Next day">
-          Forward ⏭
-        </button>
-      </div>
-    </div>
+    <Flex className="gap-2 items-center" justifyContent="start">
+      <Text className="text-sm font-medium whitespace-nowrap">Time-Lapse:</Text>
+      <Button
+        size="xs"
+        variant="secondary"
+        onClick={handleStepBackward}
+        title="Previous day"
+      >
+        ⏮ Back
+      </Button>
+      <Button
+        size="xs"
+        variant={isPlaying ? 'primary' : 'secondary'}
+        onClick={handlePlayPause}
+      >
+        {isPlaying ? '⏸ Pause' : '▶ Play'}
+      </Button>
+      <Button
+        size="xs"
+        variant="secondary"
+        onClick={handleStepForward}
+        title="Next day"
+      >
+        Forward ⏭
+      </Button>
+    </Flex>
   );
 }

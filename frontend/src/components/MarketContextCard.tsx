@@ -1,3 +1,4 @@
+import { Card, Title, Metric, Text, Grid, Col, Flex } from '@tremor/react';
 import { useMarketPE } from '../hooks/useMarketPE';
 
 interface MarketContextCardProps {
@@ -9,19 +10,19 @@ export function MarketContextCard({ years = 10 }: MarketContextCardProps) {
 
   if (loading) {
     return (
-      <div style={cardStyle}>
-        <h3 style={titleStyle}>Market P/E Context</h3>
-        <p style={{ color: '#888' }}>Loading historical data…</p>
-      </div>
+      <Card className="mb-4">
+        <Title>Market P/E Context</Title>
+        <Text className="mt-2 text-tremor-content-subtle">Loading historical data…</Text>
+      </Card>
     );
   }
 
   if (error || !data) {
     return (
-      <div style={cardStyle}>
-        <h3 style={titleStyle}>Market P/E Context</h3>
-        <p style={{ color: '#c00' }}>Unable to load Shiller data: {error || 'no data'}</p>
-      </div>
+      <Card className="mb-4">
+        <Title>Market P/E Context</Title>
+        <Text className="mt-2 text-red-500">Unable to load Shiller data: {error ?? 'no data'}</Text>
+      </Card>
     );
   }
 
@@ -29,47 +30,26 @@ export function MarketContextCard({ years = 10 }: MarketContextCardProps) {
   const range = `${stats.min.toFixed(1)} – ${stats.max.toFixed(1)}`;
 
   return (
-    <div style={cardStyle}>
-      <h3 style={titleStyle}>Market P/E — Last {years} Years (Shiller)</h3>
-      <div style={gridStyle}>
-        <Stat label="Median" value={stats.median.toFixed(1)} />
-        <Stat label="Mean" value={stats.mean.toFixed(1)} />
-        <Stat label="P25" value={stats.p25.toFixed(1)} />
-        <Stat label="P75" value={stats.p75.toFixed(1)} />
-        <Stat label="Range" value={range} />
-      </div>
-    </div>
+    <Card className="mb-4">
+      <Title>Market P/E — Last {years} Years (Shiller)</Title>
+      <Grid numItems={2} numItemsSm={3} numItemsLg={5} className="mt-4 gap-4">
+        <StatCell label="Median" value={stats.median.toFixed(1)} />
+        <StatCell label="Mean" value={stats.mean.toFixed(1)} />
+        <StatCell label="P25" value={stats.p25.toFixed(1)} />
+        <StatCell label="P75" value={stats.p75.toFixed(1)} />
+        <StatCell label="Range" value={range} />
+      </Grid>
+    </Card>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#222' }}>{value}</div>
-    </div>
+    <Col>
+      <Flex flexDirection="col" alignItems="center">
+        <Text className="uppercase tracking-wide text-xs text-tremor-content-subtle">{label}</Text>
+        <Metric className="text-xl">{value}</Metric>
+      </Flex>
+    </Col>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  padding: '1rem 1.5rem',
-  margin: '0 0 1rem 0',
-  border: '1px solid #e0e0e0',
-  borderRadius: '8px',
-  background: '#fafafa',
-};
-
-const titleStyle: React.CSSProperties = {
-  margin: '0 0 0.75rem 0',
-  fontSize: '1rem',
-  fontWeight: 600,
-  color: '#333',
-};
-
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(5, 1fr)',
-  gap: '0.75rem',
-};

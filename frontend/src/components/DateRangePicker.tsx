@@ -1,5 +1,4 @@
-// src/components/DateRangePicker.tsx
-import './DateRangePicker.css';
+import { DatePicker } from '@tremor/react';
 
 interface DateRangePickerProps {
   value: string;
@@ -7,19 +6,24 @@ interface DateRangePickerProps {
 }
 
 export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+  const dateValue = value ? new Date(value + 'T00:00:00') : undefined;
+  const maxDate = new Date();
+
+  const handleChange = (date: Date | undefined) => {
+    if (date) {
+      const iso = date.toISOString().split('T')[0];
+      onChange(iso);
+    }
   };
 
   return (
-    <div className="date-picker">
-      <label htmlFor="date-input">Select Date:</label>
-      <input
-        id="date-input"
-        type="date"
-        value={value}
-        onChange={handleChange}
-        max={new Date().toISOString().split('T')[0]}
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-tremor-content-emphasis font-medium whitespace-nowrap">Select Date:</span>
+      <DatePicker
+        value={dateValue}
+        onValueChange={handleChange}
+        maxDate={maxDate}
+        className="w-44"
       />
     </div>
   );
