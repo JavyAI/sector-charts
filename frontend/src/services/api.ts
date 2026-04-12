@@ -45,4 +45,20 @@ export async function fetchWeeklyReturns(date?: string): Promise<StockWeeklyRetu
   return response.data.returns;
 }
 
+export interface SubIndustry {
+  name: string;
+  count: number;
+  constituents: string[];
+}
+
+export interface SubSectorsResponse {
+  sector: string;
+  subIndustries: SubIndustry[];
+}
+
+export async function fetchSubSectors(sector: string): Promise<SubSectorsResponse> {
+  const response = await api.get<SubSectorsResponse>(`/sub-sectors/${encodeURIComponent(sector)}`);
+  return response.data;
+}
+
 export default api;
