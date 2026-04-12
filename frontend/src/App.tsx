@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Callout, Flex, Grid, Title, Subtitle } from '@tremor/react';
+import { Callout, Card, Flex, Grid, Title, Subtitle, Text } from '@tremor/react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
 import TimelapseControl from './components/TimelapseControl';
@@ -10,7 +10,12 @@ import KpiHeader from './components/KpiHeader';
 import SectorAllocation from './components/SectorAllocation';
 import SectorTable from './components/SectorTable';
 import DarkModeToggle from './components/DarkModeToggle';
+import DispersionChart from './components/DispersionChart';
+import PeHistoricalComparison from './components/PeHistoricalComparison';
+import SectorVsExSector from './components/SectorVsExSector';
+import CapVsEqualWeight from './components/CapVsEqualWeight';
 import { useSectorData } from './hooks/useSectorData';
+import { useDispersionData } from './hooks/useDispersionData';
 import { todayLocal } from './utils/date';
 
 // Initialize dark mode from localStorage before first render
@@ -28,6 +33,7 @@ function App() {
   const [visibleSectors, setVisibleSectors] = useState<Set<string>>(new Set<string>());
   const [displayMode, setDisplayMode] = useState<'cap-weighted' | 'equal-weight'>('cap-weighted');
   const { data, loading, error } = useSectorData(selectedDate);
+  const dispersionData = useDispersionData();
   const hasInitializedRef = useRef(false);
 
   // Once data loads, default all sectors visible — only run once
@@ -55,7 +61,7 @@ function App() {
         {data && <KpiHeader sectors={data.sectors} />}
 
         {/* Controls Panel */}
-        <div className="bg-tremor-background-subtle dark:bg-dark-tremor-background-subtle rounded-tremor-default p-4 mb-6">
+        <Card className="mb-6">
           <Flex flexDirection="row" justifyContent="start" className="gap-4 flex-wrap">
             <DateRangePicker value={selectedDate} onChange={setSelectedDate} />
             <CapVsEqualToggle mode={displayMode} onChange={setDisplayMode} />
@@ -72,7 +78,7 @@ function App() {
               />
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Loading / Error States */}
         {loading && (
@@ -105,6 +111,55 @@ function App() {
 
             {/* Full-width Sector Table */}
             <SectorTable sectors={data.sectors} />
+          </>
+        )}
+
+        {/* Dispersion Chart — always shown when dispersion data is ready */}
+        {!dispersionData.loading && !dispersionData.error && dispersionData.stocks.length > 0 && (
+          <Card className="mt-6">
+            <Title>Sector Dispersion — Constituent P/E Distribution</Title>
+            <Text className="mb-4">
+              Each bubble represents an S&P 500 constituent. Size = market cap, color = above/below sector average.
+            </Text>
+            <DispersionChart
+              stocks={dispersionData.stocks}
+              sectorAverages={dispersionData.sectorAverages}
+              metric="pe"
+            />
+          </Card>
+        )}
+        {dispersionData.loading && (
+          <Callout title="Loading dispersion data" color="yellow" className="mt-6">
+            Fetching constituent data…
+          </Callout>
+        )}
+        {dispersionData.error && (
+          <Callout title="Dispersion data unavailable" color="red" className="mt-6">
+            {dispersionData.error}
+          </Callout>
+        )}
+
+        {/* Duality Research-Style Analysis */}
+        {data && (
+          <>
+            <Card className="mt-6">
+              <Title>Current P/E vs Historical Averages</Title>
+              <Text className="mb-4">How each sector's current P/E compares to its 5-year and 10-year average</Text>
+              <PeHistoricalComparison sectors={data.sectors} />
+            </Card>
+
+            <Grid numItems={1} numItemsLg={2} className="mt-6 gap-6">
+              <Card>
+                <Title>Sector vs Ex-Sector Valuations</Title>
+                <Text className="mb-4">Forward P/E with and without each sector</Text>
+                <SectorVsExSector sectors={data.sectors} />
+              </Card>
+              <Card>
+                <Title>Cap-Weighted vs Equal-Weight</Title>
+                <Text className="mb-4">How the largest stocks skew each sector's valuation</Text>
+                <CapVsEqualWeight sectors={data.sectors} />
+              </Card>
+            </Grid>
           </>
         )}
       </div>
