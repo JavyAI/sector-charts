@@ -1,4 +1,5 @@
 import { DatePicker } from '@tremor/react';
+import { formatLocalDate } from '../utils/date';
 
 interface DateRangePickerProps {
   value: string;
@@ -11,8 +12,7 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
 
   const handleChange = (date: Date | undefined) => {
     if (date) {
-      const iso = date.toISOString().split('T')[0];
-      onChange(iso);
+      onChange(formatLocalDate(date));
     }
   };
 

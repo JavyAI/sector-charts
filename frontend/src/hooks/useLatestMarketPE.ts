@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchShillerHistory, ShillerHistoryPoint } from '../services/shillerApi';
+import { formatLocalDate, todayLocal } from '../utils/date';
 
 interface UseLatestMarketPEResult {
   latestCape: number | null;
@@ -20,11 +21,10 @@ export function useLatestMarketPE(): UseLatestMarketPEResult {
       setError(null);
       try {
         // Fetch recent 2 years to get the latest data point
-        const now = new Date();
-        const end = now.toISOString().split('T')[0];
-        const startDate = new Date(now);
+        const end = todayLocal();
+        const startDate = new Date();
         startDate.setFullYear(startDate.getFullYear() - 2);
-        const start = startDate.toISOString().split('T')[0];
+        const start = formatLocalDate(startDate);
 
         const result = await fetchShillerHistory(start, end);
         if (isMounted) {
