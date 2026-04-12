@@ -7,8 +7,17 @@ const api = axios.create({
 });
 
 export const fetchSectorData = async (date: string): Promise<SectorDataResponse> => {
-  const response = await api.get<SectorDataResponse>('/sectors', { params: { date } });
-  return response.data;
+  try {
+    const response = await api.get<SectorDataResponse>('/sectors', { params: { date } });
+    return response.data;
+  } catch (err) {
+    // If the exact date has no data (weekend/holiday), fall back to latest available
+    if (axios.isAxiosError(err) && err.response?.status === 404) {
+      const fallback = await api.get<SectorDataResponse>('/sectors/latest');
+      return fallback.data;
+    }
+    throw err;
+  }
 };
 
 export const fetchConstituents = async (): Promise<ConstituentResponse> => {
