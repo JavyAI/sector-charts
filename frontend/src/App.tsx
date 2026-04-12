@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Callout, Flex, Grid, Title, Subtitle } from '@tremor/react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
@@ -11,6 +11,7 @@ import SectorAllocation from './components/SectorAllocation';
 import SectorTable from './components/SectorTable';
 import DarkModeToggle from './components/DarkModeToggle';
 import { useSectorData } from './hooks/useSectorData';
+import { todayLocal } from './utils/date';
 
 // Initialize dark mode from localStorage before first render
 const stored = (() => {
@@ -23,19 +24,19 @@ if (stored === null || stored === 'true') {
 }
 
 function App() {
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(todayLocal());
   const [visibleSectors, setVisibleSectors] = useState<Set<string>>(new Set<string>());
   const [displayMode, setDisplayMode] = useState<'cap-weighted' | 'equal-weight'>('cap-weighted');
   const { data, loading, error } = useSectorData(selectedDate);
+  const hasInitializedRef = useRef(false);
 
-  // Once data loads, default all sectors visible
+  // Once data loads, default all sectors visible — only run once
   useEffect(() => {
-    if (data && visibleSectors.size === 0) {
+    if (data && !hasInitializedRef.current) {
       setVisibleSectors(new Set(data.sectors.map((s) => s.sector)));
+      hasInitializedRef.current = true;
     }
-  }, [data, visibleSectors.size]);
+  }, [data]);
 
   return (
     <div className="min-h-screen bg-tremor-background dark:bg-dark-tremor-background">
@@ -95,12 +96,6 @@ function App() {
                   visibleSectors={visibleSectors}
                   displayMode={displayMode}
                 />
-                <div className="mt-4">
-                  <TimelapseControl
-                    onDateChange={setSelectedDate}
-                    currentDate={selectedDate}
-                  />
-                </div>
               </div>
               <div className="flex flex-col gap-4">
                 <SectorAllocation sectors={data.sectors} />
