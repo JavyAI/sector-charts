@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import {
   fetchShillerData,
   storeShillerData,
+  fillMissingCape,
   getShillerDataRange,
   getMarketHistoricalPE,
 } from '../services/shiller.js';
@@ -59,6 +60,7 @@ router.post(
   asyncHandler(async (_req: Request, res: Response) => {
     const points = await fetchShillerData();
     storeShillerData(points);
+    fillMissingCape();
     return res.json({ success: true, count: points.length });
   }),
 );

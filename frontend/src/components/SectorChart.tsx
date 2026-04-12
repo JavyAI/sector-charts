@@ -61,7 +61,7 @@ export default function SectorChart({ data, visibleSectors, displayMode, onSecto
         showLegend={false}
         showGridLines={true}
         showAnimation={true}
-        onValueChange={onSectorClick ? (v) => { if (v && v.sector) onSectorClick(v.sector as string); } : undefined}
+        onValueChange={onSectorClick ? (v) => { const name = v?.sector ?? v?.name ?? v?.categoryClicked; if (name) onSectorClick(String(name)); } : undefined}
       />
     </Card>
   );

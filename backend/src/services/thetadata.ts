@@ -240,11 +240,39 @@ export function computeWeeklyReturns(weekEndDate: string): void {
     return;
   }
 
+  // Build a price-based market cap estimate per sector
+  // Get sector totals from sector_metrics, distribute by relative price within each sector
+  const sectorCaps = new Map<string, number>();
+  const sectorPriceSums = new Map<string, number>();
+  const symbolSectors = new Map<string, string>();
+
+  const constituents = db.prepare(
+    `SELECT symbol, gics_sector FROM constituents`
+  ).all() as Array<{ symbol: string; gics_sector: string }>;
+
+  for (const c of constituents) {
+    symbolSectors.set(c.symbol, c.gics_sector);
+  }
+
+  const sectorMetrics = db.prepare(
+    `SELECT sector, weightedMarketCap FROM sector_metrics WHERE date = (SELECT MAX(date) FROM sector_metrics)`
+  ).all() as Array<{ sector: string; weightedMarketCap: number }>;
+
+  for (const sm of sectorMetrics) {
+    sectorCaps.set(sm.sector, sm.weightedMarketCap);
+  }
+
+  // Sum close prices per sector for proportional distribution
+  for (const row of rows) {
+    const sector = symbolSectors.get(row.symbol) ?? '';
+    sectorPriceSums.set(sector, (sectorPriceSums.get(sector) ?? 0) + row.curr_close);
+  }
+
   const insert = db.prepare(`
     INSERT OR REPLACE INTO stock_weekly_returns
-      (symbol, week_end_date, week_start_date, return_pct, close_price, prev_close_price, last_updated)
+      (symbol, week_end_date, week_start_date, return_pct, close_price, prev_close_price, market_cap_estimate, last_updated)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertMany = db.transaction(
@@ -259,6 +287,12 @@ export function computeWeeklyReturns(weekEndDate: string): void {
     ) => {
       for (const row of computedRows) {
         const returnPct = ((row.curr_close - row.prev_close) / row.prev_close) * 100;
+        const sector = symbolSectors.get(row.symbol) ?? '';
+        const totalSectorCap = sectorCaps.get(sector) ?? 0;
+        const totalSectorPriceSum = sectorPriceSums.get(sector) ?? 1;
+        const marketCapEstimate = totalSectorCap > 0
+          ? (row.curr_close / totalSectorPriceSum) * totalSectorCap
+          : null;
         insert.run(
           row.symbol,
           row.curr_date,
@@ -266,6 +300,7 @@ export function computeWeeklyReturns(weekEndDate: string): void {
           returnPct,
           row.curr_close,
           row.prev_close,
+          marketCapEstimate,
           now,
         );
       }

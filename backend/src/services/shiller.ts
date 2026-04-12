@@ -100,6 +100,78 @@ export async function fetchShillerData(): Promise<ShillerDataPoint[]> {
   return points;
 }
 
+/**
+ * Fill missing CAPE values for months where sp500_price exists but cape=0.
+ * Computes CAPE = price / (10-year average of real earnings) from prior data.
+ */
+export function fillMissingCape(): void {
+  const db = getDatabase();
+
+  // Get the last known real earnings average (10-year trailing) from the latest month with real_earnings > 0
+  const lastEarnings = db.prepare(
+    `SELECT date, real_earnings FROM shiller_historical WHERE real_earnings > 0 ORDER BY date DESC LIMIT 1`
+  ).get() as { date: string; real_earnings: number } | undefined;
+
+  if (!lastEarnings) {
+    logger.warn('No real earnings data found — cannot fill missing CAPE');
+    return;
+  }
+
+  // Compute 10-year avg real earnings from the last 120 months that have data
+  const earningsRows = db.prepare(
+    `SELECT real_earnings FROM shiller_historical
+     WHERE real_earnings > 0 AND date <= ?
+     ORDER BY date DESC LIMIT 120`
+  ).all(lastEarnings.date) as Array<{ real_earnings: number }>;
+
+  if (earningsRows.length < 12) {
+    logger.warn({ count: earningsRows.length }, 'Not enough earnings data for CAPE computation');
+    return;
+  }
+
+  const avgRealEarnings = earningsRows.reduce((s, r) => s + r.real_earnings, 0) / earningsRows.length;
+
+  if (avgRealEarnings <= 0) {
+    logger.warn('Average real earnings <= 0 — cannot compute CAPE');
+    return;
+  }
+
+  // Also get the last known long_rate and cpi for extrapolation
+  const lastRate = db.prepare(
+    `SELECT long_rate, cpi FROM shiller_historical WHERE long_rate > 0 ORDER BY date DESC LIMIT 1`
+  ).get() as { long_rate: number; cpi: number } | undefined;
+
+  // Fill all months where cape=0 but sp500_price > 0
+  const missingRows = db.prepare(
+    `SELECT date, sp500_price FROM shiller_historical WHERE cape = 0 AND sp500_price > 0`
+  ).all() as Array<{ date: string; sp500_price: number }>;
+
+  if (missingRows.length === 0) {
+    logger.info('No missing CAPE values to fill');
+    return;
+  }
+
+  const update = db.prepare(
+    `UPDATE shiller_historical SET cape = ?, pe_ratio = ?, long_rate = CASE WHEN long_rate = 0 THEN ? ELSE long_rate END WHERE date = ?`
+  );
+
+  const fillMany = db.transaction((rows: Array<{ date: string; sp500_price: number }>) => {
+    for (const row of rows) {
+      const cape = row.sp500_price / avgRealEarnings;
+      const peRatio = cape; // approximate — both use smoothed earnings
+      update.run(
+        Math.round(cape * 100) / 100,
+        Math.round(peRatio * 100) / 100,
+        lastRate?.long_rate ?? 0,
+        row.date,
+      );
+    }
+  });
+
+  fillMany(missingRows);
+  logger.info({ filled: missingRows.length, avgRealEarnings: avgRealEarnings.toFixed(2) }, 'Filled missing CAPE values');
+}
+
 export function storeShillerData(points: ShillerDataPoint[]): void {
   const db = getDatabase();
   const now = new Date().toISOString();

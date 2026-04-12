@@ -15,6 +15,7 @@ export interface AdjustedCapeResult {
   traditionalCape: number;
   adjustedCape: number;
   excessCapeYield: number; // (1/CAPE) - real_long_rate — Shiller's ECY
+  rateType: 'real'; // ECY uses real rates (nominal minus inflation)
   interestRateContext: InterestRateContext;
   adjustments: AdjustmentBreakdown;
 }
@@ -94,6 +95,7 @@ export function computeAdjustedCape(years: number = 10): AdjustedCapeResult {
       traditionalCape: 0,
       adjustedCape: 0,
       excessCapeYield: 0,
+      rateType: 'real' as const,
       interestRateContext: { current: 0, historical10yAvg: 0, historicalLongtermAvg: 0 },
       adjustments: { interestRate: 0, total: 0 },
     };
@@ -114,19 +116,9 @@ export function computeAdjustedCape(years: number = 10): AdjustedCapeResult {
   const historical10yAvg =
     tenYearSlice.reduce((s, r) => s + r.long_rate, 0) / tenYearSlice.length / 100;
 
-  // Long-term historical average (all history or up to `years` if specified)
-  let histSlice: ShillerRow[];
-  if (years <= 0) {
-    histSlice = allRows;
-  } else {
-    const cutoffDate = new Date(latest.date);
-    cutoffDate.setFullYear(cutoffDate.getFullYear() - years);
-    const cutoffStr = cutoffDate.toISOString().split('T')[0];
-    histSlice = allRows.filter((r) => r.date >= cutoffStr);
-  }
-
+  // Long-term historical average — ALWAYS uses full history (not limited by `years` param)
   const historicalLongtermAvg =
-    histSlice.reduce((s, r) => s + r.long_rate, 0) / histSlice.length / 100;
+    allRows.reduce((s, r) => s + r.long_rate, 0) / allRows.length / 100;
 
   // Interest-rate adjustment
   // adjustment_factor = (historicalAvg - currentRate) / historicalAvg
@@ -150,6 +142,7 @@ export function computeAdjustedCape(years: number = 10): AdjustedCapeResult {
     traditionalCape: Math.round(traditionalCape * 10) / 10,
     adjustedCape: Math.round(adjustedCape * 10) / 10,
     excessCapeYield: Math.round(excessCapeYield * 100) / 100,
+    rateType: 'real' as const,
     interestRateContext: {
       current: Math.round(currentNominalRate * 10000) / 100, // as percentage, 2dp
       historical10yAvg: Math.round(historical10yAvg * 10000) / 100,

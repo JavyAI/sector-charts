@@ -54,63 +54,64 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   return res.json(result);
 }));
 
-// POST /api/sectors/seed — generate mock sector data for the last 7 days (bootstrap production)
+// POST /api/sectors/seed — generate sector data using ALL constituents from DB
 router.post('/seed', asyncHandler(async (_req: Request, res: Response) => {
-  const MOCK_DATA: Record<string, Array<{ symbol: string; companyName: string; marketCap: number; peRatio: number; eps: number; shares: number }>> = {
-    'Information Technology': [
-      { symbol: 'AAPL', companyName: 'Apple', marketCap: 3_500_000_000_000, peRatio: 31, eps: 6.4, shares: 15_000_000_000 },
-      { symbol: 'MSFT', companyName: 'Microsoft', marketCap: 3_200_000_000_000, peRatio: 36, eps: 12, shares: 7_400_000_000 },
-      { symbol: 'NVDA', companyName: 'NVIDIA', marketCap: 3_000_000_000_000, peRatio: 55, eps: 2.2, shares: 24_600_000_000 },
-      { symbol: 'AVGO', companyName: 'Broadcom', marketCap: 800_000_000_000, peRatio: 38, eps: 4.5, shares: 4_650_000_000 },
-    ],
-    'Financials': [
-      { symbol: 'JPM', companyName: 'JPMorgan Chase', marketCap: 700_000_000_000, peRatio: 13, eps: 19, shares: 2_820_000_000 },
-      { symbol: 'BAC', companyName: 'Bank of America', marketCap: 350_000_000_000, peRatio: 14, eps: 3.2, shares: 7_700_000_000 },
-      { symbol: 'WFC', companyName: 'Wells Fargo', marketCap: 240_000_000_000, peRatio: 12, eps: 5.1, shares: 3_400_000_000 },
-      { symbol: 'BRK.B', companyName: 'Berkshire Hathaway', marketCap: 900_000_000_000, peRatio: 10, eps: 42, shares: 2_180_000_000 },
-    ],
-    'Health Care': [
-      { symbol: 'UNH', companyName: 'UnitedHealth', marketCap: 520_000_000_000, peRatio: 22, eps: 25, shares: 920_000_000 },
-      { symbol: 'LLY', companyName: 'Eli Lilly', marketCap: 750_000_000_000, peRatio: 58, eps: 14, shares: 950_000_000 },
-      { symbol: 'JNJ', companyName: 'Johnson & Johnson', marketCap: 410_000_000_000, peRatio: 17, eps: 9, shares: 2_400_000_000 },
-    ],
-    'Consumer Discretionary': [
-      { symbol: 'AMZN', companyName: 'Amazon', marketCap: 1_900_000_000_000, peRatio: 45, eps: 4.1, shares: 10_500_000_000 },
-      { symbol: 'TSLA', companyName: 'Tesla', marketCap: 800_000_000_000, peRatio: 75, eps: 3.4, shares: 3_180_000_000 },
-      { symbol: 'HD', companyName: 'Home Depot', marketCap: 400_000_000_000, peRatio: 26, eps: 15, shares: 990_000_000 },
-    ],
-    'Communication Services': [
-      { symbol: 'GOOGL', companyName: 'Alphabet', marketCap: 2_100_000_000_000, peRatio: 27, eps: 6.5, shares: 12_400_000_000 },
-      { symbol: 'META', companyName: 'Meta Platforms', marketCap: 1_400_000_000_000, peRatio: 29, eps: 19, shares: 2_530_000_000 },
-      { symbol: 'NFLX', companyName: 'Netflix', marketCap: 280_000_000_000, peRatio: 42, eps: 16, shares: 425_000_000 },
-    ],
-    'Industrials': [
-      { symbol: 'CAT', companyName: 'Caterpillar', marketCap: 180_000_000_000, peRatio: 16, eps: 22, shares: 490_000_000 },
-      { symbol: 'GE', companyName: 'GE Aerospace', marketCap: 200_000_000_000, peRatio: 34, eps: 5.4, shares: 1_090_000_000 },
-      { symbol: 'UNP', companyName: 'Union Pacific', marketCap: 150_000_000_000, peRatio: 21, eps: 11, shares: 610_000_000 },
-    ],
-    'Consumer Staples': [
-      { symbol: 'WMT', companyName: 'Walmart', marketCap: 650_000_000_000, peRatio: 30, eps: 2.7, shares: 8_050_000_000 },
-      { symbol: 'PG', companyName: 'Procter & Gamble', marketCap: 400_000_000_000, peRatio: 25, eps: 6.6, shares: 2_360_000_000 },
-      { symbol: 'COST', companyName: 'Costco', marketCap: 380_000_000_000, peRatio: 52, eps: 16, shares: 443_000_000 },
-    ],
-    'Energy': [
-      { symbol: 'XOM', companyName: 'ExxonMobil', marketCap: 470_000_000_000, peRatio: 13, eps: 9, shares: 4_400_000_000 },
-      { symbol: 'CVX', companyName: 'Chevron', marketCap: 290_000_000_000, peRatio: 14, eps: 11, shares: 1_830_000_000 },
-    ],
-    'Utilities': [
-      { symbol: 'NEE', companyName: 'NextEra Energy', marketCap: 160_000_000_000, peRatio: 21, eps: 3.7, shares: 2_050_000_000 },
-      { symbol: 'SO', companyName: 'Southern Company', marketCap: 92_000_000_000, peRatio: 19, eps: 4.4, shares: 1_100_000_000 },
-    ],
-    'Real Estate': [
-      { symbol: 'PLD', companyName: 'Prologis', marketCap: 110_000_000_000, peRatio: 35, eps: 3.4, shares: 930_000_000 },
-      { symbol: 'AMT', companyName: 'American Tower', marketCap: 95_000_000_000, peRatio: 40, eps: 5.1, shares: 466_000_000 },
-    ],
-    'Materials': [
-      { symbol: 'LIN', companyName: 'Linde', marketCap: 220_000_000_000, peRatio: 30, eps: 15, shares: 470_000_000 },
-      { symbol: 'SHW', companyName: 'Sherwin-Williams', marketCap: 90_000_000_000, peRatio: 33, eps: 10.7, shares: 253_000_000 },
-    ],
+  const { getAllConstituents } = await import('../services/constituents.js');
+  const { getDatabase } = await import('../db/connection.js');
+  const db = getDatabase();
+
+  const constituents = getAllConstituents();
+  if (constituents.length === 0) {
+    return res.status(400).json({ error: 'No constituents in DB. Call /api/constituents/refresh first.' });
+  }
+
+  // Sector-level P/E ranges (realistic medians for generating per-stock values)
+  const sectorPeRanges: Record<string, [number, number]> = {
+    'Information Technology': [25, 55],
+    'Consumer Discretionary': [20, 75],
+    'Communication Services': [18, 42],
+    'Health Care': [15, 58],
+    'Financials': [8, 18],
+    'Industrials': [14, 34],
+    'Consumer Staples': [20, 52],
+    'Energy': [8, 18],
+    'Utilities': [15, 25],
+    'Real Estate': [25, 45],
+    'Materials': [18, 35],
   };
+
+  // Total S&P 500 market cap ~$50T, distributed by sector weight
+  const sectorWeights: Record<string, number> = {
+    'Information Technology': 0.32,
+    'Financials': 0.13,
+    'Health Care': 0.12,
+    'Consumer Discretionary': 0.10,
+    'Communication Services': 0.09,
+    'Industrials': 0.08,
+    'Consumer Staples': 0.06,
+    'Energy': 0.04,
+    'Utilities': 0.02,
+    'Real Estate': 0.02,
+    'Materials': 0.02,
+  };
+  const totalMarketCap = 50_000_000_000_000;
+
+  // Group constituents by sector
+  const bySector = new Map<string, typeof constituents>();
+  for (const c of constituents) {
+    const list = bySector.get(c.gics_sector) ?? [];
+    list.push(c);
+    bySector.set(c.gics_sector, list);
+  }
+
+  // Also use real stock prices from DB if available for market cap estimation
+  const latestPrices = new Map<string, number>();
+  const priceRows = db.prepare(
+    `SELECT symbol, close FROM stock_prices WHERE date = (SELECT MAX(date) FROM stock_prices) AND close IS NOT NULL`
+  ).all() as Array<{ symbol: string; close: number }>;
+  for (const p of priceRows) {
+    latestPrices.set(p.symbol, p.close);
+  }
 
   const dates: string[] = [];
   for (let i = 0; i < 7; i++) {
@@ -119,21 +120,50 @@ router.post('/seed', asyncHandler(async (_req: Request, res: Response) => {
     dates.push(d.toISOString().split('T')[0]);
   }
 
+  // Simple hash for deterministic but varied per-stock values
+  function hash(s: string): number {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
   let total = 0;
   for (const date of dates) {
     const drift = 1 + (Math.random() - 0.5) * 0.04;
-    const allMetrics = Object.entries(MOCK_DATA).map(([sector, stocks]) =>
-      sectorService.aggregateToSector(date, sector, stocks.map(s => ({
-        ...s,
-        peRatio: Math.max(1, s.peRatio * drift),
-        marketCap: s.marketCap * drift,
-      }))),
-    );
-    sectorService.storeSectorMetrics(allMetrics);
-    total += allMetrics.length;
+
+    for (const [sector, stocks] of bySector.entries()) {
+      const [peLow, peHigh] = sectorPeRanges[sector] ?? [15, 30];
+      const weight = sectorWeights[sector] ?? 0.02;
+      const sectorCap = totalMarketCap * weight;
+
+      // Distribute cap using real prices if available, otherwise by hash
+      const totalPriceSum = stocks.reduce((s, c) => s + (latestPrices.get(c.symbol) ?? (hash(c.symbol) % 500 + 10)), 0);
+
+      const stockFundamentals = stocks.map(c => {
+        const price = latestPrices.get(c.symbol) ?? (hash(c.symbol) % 500 + 10);
+        const capShare = price / totalPriceSum;
+        const marketCap = sectorCap * capShare * drift;
+        const peBase = peLow + (hash(c.symbol + sector) % 100) / 100 * (peHigh - peLow);
+        const peRatio = Math.max(1, peBase * drift);
+        const eps = price / peRatio;
+        const shares = marketCap / price;
+        return {
+          symbol: c.symbol,
+          companyName: c.security,
+          marketCap,
+          peRatio,
+          eps,
+          shares,
+        };
+      });
+
+      const metric = sectorService.aggregateToSector(date, sector, stockFundamentals);
+      sectorService.storeSectorMetrics([metric]);
+      total++;
+    }
   }
 
-  return res.json({ success: true, rowsSeeded: total, dates });
+  return res.json({ success: true, rowsSeeded: total, totalConstituents: constituents.length, dates });
 }));
 
 export default router;

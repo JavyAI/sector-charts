@@ -49,10 +49,10 @@ router.post('/refresh', asyncHandler(async (_req: Request, res: Response) => {
 
   const symbols = constituents.map((c) => c.symbol);
 
-  // Fetch last 2 weeks of trading data
+  // Fetch last 3 weeks of trading data to ensure full 5-day weekly returns
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 14);
+  startDate.setDate(startDate.getDate() - 21);
   const start = startDate.toISOString().split('T')[0];
   const end = endDate.toISOString().split('T')[0];
 
