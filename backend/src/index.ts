@@ -1,6 +1,8 @@
 import config from './config.js';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initializeDatabase } from './db/connection.js';
 import sectorsRouter from './routes/sectors.js';
 import constituentsRouter from './routes/constituents.js';
@@ -37,7 +39,21 @@ app.use('/api/constituents', constituentsRouter);
 app.use('/api/shiller', shillerRouter);
 app.use('/api/stock-prices', stockPricesRouter);
 
-app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+// Serve frontend static files (production build)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const frontendDist = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDist));
+
+// SPA catch-all: serve index.html for any non-API route
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(frontendDist, 'index.html'), (err) => {
+    if (err) next(err);
+  });
+});
+
 app.use(errorHandler);
 
 const server = app.listen(PORT, '0.0.0.0', () => {
