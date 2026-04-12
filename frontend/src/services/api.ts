@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SectorDataResponse, SectorHistoryResponse } from '../types';
+import { SectorDataResponse } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -8,16 +8,6 @@ const api = axios.create({
 
 export const fetchSectorData = async (date: string): Promise<SectorDataResponse> => {
   const response = await api.get<SectorDataResponse>('/sectors', { params: { date } });
-  return response.data;
-};
-
-export const fetchSectorHistory = async (
-  sector: string,
-  days?: number
-): Promise<SectorHistoryResponse> => {
-  const response = await api.get<SectorHistoryResponse>(`/sectors/${sector}/history`, {
-    params: { days },
-  });
   return response.data;
 };
 

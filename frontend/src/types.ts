@@ -13,7 +13,3 @@ export interface SectorDataResponse {
   sectors: SectorMetric[];
 }
 
-export interface SectorHistoryResponse {
-  sector: string;
-  history: SectorMetric[];
-}

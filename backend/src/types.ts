@@ -17,13 +17,3 @@ export interface SectorMetric {
   lastUpdated: string;
 }
 
-export interface HistoricalSectorMetric extends SectorMetric {
-  peRatioPctChange5Yr: number;
-  peRatioPctChange10Yr: number;
-}
-
-export interface CacheEntry {
-  key: string;
-  value: string;
-  expiresAt: number;
-}
