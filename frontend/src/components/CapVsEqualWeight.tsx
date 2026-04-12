@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { SectorMetric } from '../types';
 import { CHART_COLORS } from './chartColors';
+import ChartTooltip from './ChartTooltip';
 
 interface CapVsEqualWeightProps {
   sectors: SectorMetric[];
@@ -14,12 +15,14 @@ interface TooltipState {
   capPE: number;
   equalPE: number;
   divergence: number;
+  constituents: number;
 }
 
-const MARGIN = { top: 24, right: 140, bottom: 48, left: 160 };
-const ROW_HEIGHT = 38;
-const DOT_R = 7;
-const DIVERGENCE_THRESHOLD = 0.20; // 20% divergence triggers yellow highlight
+const MARGIN = { top: 24, right: 24, bottom: 56, left: 24 };
+const ROW_HEIGHT = 42;
+const DOT_R = 6;
+const LABEL_W = 150;
+const DIVERGENCE_THRESHOLD = 0.20;
 
 function fmt(v: number) {
   return `${v.toFixed(1)}x`;
@@ -34,7 +37,9 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
   const [mounted, setMounted] = useState(false);
-  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, sector: '', capPE: 0, equalPE: 0, divergence: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState>({
+    visible: false, x: 0, y: 0, sector: '', capPE: 0, equalPE: 0, divergence: 0, constituents: 0,
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -53,23 +58,24 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
     return () => clearTimeout(t);
   }, []);
 
-  // Sort by cap-weighted P/E descending
   const rows = useMemo(
     () => [...sectors].sort((a, b) => b.weightedPeRatio - a.weightedPeRatio),
     [sectors]
   );
 
   const height = MARGIN.top + rows.length * ROW_HEIGHT + MARGIN.bottom;
-  const innerW = width - MARGIN.left - MARGIN.right;
 
-  // X scale
+  // Bar area between left and right label columns
+  const barAreaX = MARGIN.left + LABEL_W;
+  const barAreaW = Math.max(120, width - MARGIN.left - MARGIN.right - LABEL_W * 2);
+
   const allPEs = rows.flatMap(r => [r.weightedPeRatio, r.equalWeightPeRatio]).filter(v => v > 0 && isFinite(v));
-  const xMin = Math.max(0, Math.min(...allPEs) - 3);
-  const xMax = Math.max(...allPEs) + 5;
+  const xMin = Math.max(0, Math.min(...allPEs) - 2);
+  const xMax = Math.max(...allPEs) + 4;
 
   const xScale = useCallback(
-    (v: number) => ((v - xMin) / (xMax - xMin)) * innerW,
-    [innerW, xMin, xMax]
+    (v: number) => ((v - xMin) / (xMax - xMin)) * barAreaW,
+    [barAreaW, xMin, xMax]
   );
 
   // X-axis ticks
@@ -90,6 +96,7 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
       capPE: sector.weightedPeRatio,
       equalPE: sector.equalWeightPeRatio,
       divergence: divergencePct(sector.weightedPeRatio, sector.equalWeightPeRatio),
+      constituents: sector.constituents,
     });
   }, []);
 
@@ -108,10 +115,11 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
       <svg
         width={width}
         height={height}
-        style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.5s ease', overflow: 'visible' }}
+        style={{ overflow: 'visible' }}
       >
-        <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-          {/* X-axis gridlines and ticks */}
+        <g transform={`translate(${barAreaX},${MARGIN.top})`}>
+
+          {/* X-axis gridlines */}
           {xTicks.map(v => {
             const x = xScale(v);
             return (
@@ -120,11 +128,12 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
                   x1={x} x2={x}
                   y1={0} y2={rows.length * ROW_HEIGHT}
                   stroke={CHART_COLORS.mutedText}
-                  strokeOpacity={0.15}
-                  strokeDasharray="3 3"
+                  strokeOpacity={0.12}
+                  strokeDasharray="4 4"
                 />
                 <text
-                  x={x} y={rows.length * ROW_HEIGHT + 14}
+                  x={x}
+                  y={rows.length * ROW_HEIGHT + 14}
                   textAnchor="middle"
                   fontSize={10}
                   fill={CHART_COLORS.mutedText}
@@ -135,14 +144,26 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
             );
           })}
 
+          {/* X-axis label */}
+          <text
+            x={barAreaW / 2}
+            y={rows.length * ROW_HEIGHT + 30}
+            textAnchor="middle"
+            fontSize={10}
+            fill={CHART_COLORS.mutedText}
+          >
+            P/E Ratio
+          </text>
+
           {/* Rows */}
           {rows.map((sector, i) => {
             const y = i * ROW_HEIGHT + ROW_HEIGHT / 2;
             const capX = xScale(sector.weightedPeRatio);
             const equalX = xScale(sector.equalWeightPeRatio);
             const isHighlighted = divergencePct(sector.weightedPeRatio, sector.equalWeightPeRatio) > DIVERGENCE_THRESHOLD;
-            const leftDot = Math.min(capX, equalX);
-            const rightDot = Math.max(capX, equalX);
+            const leftX = Math.min(capX, equalX);
+            const rightX = Math.max(capX, equalX);
+            const gapPct = divergencePct(sector.weightedPeRatio, sector.equalWeightPeRatio) * 100;
 
             return (
               <g
@@ -155,26 +176,29 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
                 {/* Yellow highlight for high-divergence rows */}
                 {isHighlighted && (
                   <rect
-                    x={-MARGIN.left}
+                    x={-LABEL_W}
                     y={y - ROW_HEIGHT / 2}
-                    width={innerW + MARGIN.left + MARGIN.right}
+                    width={barAreaW + LABEL_W * 2}
                     height={ROW_HEIGHT}
-                    fill={CHART_COLORS.highlight}
-                    rx={2}
+                    fill="rgba(234, 179, 8, 0.12)"
+                    rx={3}
                   />
                 )}
 
                 {/* Row separator */}
                 <line
-                  x1={-MARGIN.left} x2={innerW + 10}
-                  y1={y + ROW_HEIGHT / 2} y2={y + ROW_HEIGHT / 2}
+                  x1={-LABEL_W}
+                  x2={barAreaW + LABEL_W}
+                  y1={y + ROW_HEIGHT / 2}
+                  y2={y + ROW_HEIGHT / 2}
                   stroke={CHART_COLORS.mutedText}
                   strokeOpacity={0.08}
                 />
 
-                {/* Sector name (left) */}
+                {/* Left sector label */}
                 <text
-                  x={-8} y={y}
+                  x={-8}
+                  y={y}
                   textAnchor="end"
                   dominantBaseline="middle"
                   fontSize={11}
@@ -186,9 +210,9 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
 
                 {/* Gray connector bar */}
                 <rect
-                  x={leftDot}
+                  x={leftX}
                   y={y - 2}
-                  width={rightDot - leftDot}
+                  width={Math.max(0, rightX - leftX)}
                   height={4}
                   fill={CHART_COLORS.gray}
                   fillOpacity={0.4}
@@ -197,41 +221,45 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
 
                 {/* Cap-weighted dot (teal) */}
                 <circle
-                  cx={capX} cy={y}
+                  cx={mounted ? capX : xScale((sector.weightedPeRatio + sector.equalWeightPeRatio) / 2)}
+                  cy={y}
                   r={DOT_R}
                   fill={CHART_COLORS.teal}
-                  stroke="#0f172a"
-                  strokeWidth={1.5}
+                  stroke="white"
+                  strokeWidth={1}
+                  style={{ transition: mounted ? `cx 0.5s ease ${i * 40}ms` : undefined }}
                 />
 
-                {/* Equal-weight dot (purple) */}
-                <circle
-                  cx={equalX} cy={y}
-                  r={DOT_R}
-                  fill={CHART_COLORS.purple}
-                  stroke="#0f172a"
-                  strokeWidth={1.5}
-                />
-
-                {/* Cap PE label */}
+                {/* Cap PE label above dot */}
                 <text
                   x={capX}
-                  y={y - DOT_R - 3}
+                  y={y - DOT_R - 4}
                   textAnchor="middle"
-                  fontSize={9}
+                  fontSize={10}
                   fontWeight={600}
                   fill={CHART_COLORS.teal}
                 >
                   {fmt(sector.weightedPeRatio)}
                 </text>
 
-                {/* Equal PE label (only if divergence > threshold to avoid clutter) */}
+                {/* Equal-weight dot (purple) */}
+                <circle
+                  cx={mounted ? equalX : xScale((sector.weightedPeRatio + sector.equalWeightPeRatio) / 2)}
+                  cy={y}
+                  r={DOT_R}
+                  fill={CHART_COLORS.purple}
+                  stroke="white"
+                  strokeWidth={1}
+                  style={{ transition: mounted ? `cx 0.5s ease ${i * 40 + 20}ms` : undefined }}
+                />
+
+                {/* Equal PE label below dot (only when highlighted, to reduce clutter) */}
                 {isHighlighted && (
                   <text
                     x={equalX}
-                    y={y + DOT_R + 10}
+                    y={y + DOT_R + 12}
                     textAnchor="middle"
-                    fontSize={9}
+                    fontSize={10}
                     fontWeight={600}
                     fill={CHART_COLORS.purple}
                   >
@@ -239,53 +267,42 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
                   </text>
                 )}
 
-                {/* Right edge: sector name repeated */}
+                {/* Gap annotation for highlighted rows */}
+                {isHighlighted && (
+                  <text
+                    x={barAreaW + 8}
+                    y={y}
+                    dominantBaseline="middle"
+                    fontSize={10}
+                    fontWeight={600}
+                    fill="#f59e0b"
+                  >
+                    {gapPct.toFixed(0)}% gap
+                  </text>
+                )}
+
+                {/* Right sector label */}
                 <text
-                  x={innerW + MARGIN.right - 8}
+                  x={barAreaW + LABEL_W - 8}
                   y={y}
                   textAnchor="end"
                   dominantBaseline="middle"
-                  fontSize={10}
+                  fontSize={11}
                   fill={CHART_COLORS.mutedText}
-                  fillOpacity={0.6}
                 >
                   {sector.sector}
                 </text>
-
-                {/* Divergence indicator for highlighted rows */}
-                {isHighlighted && (
-                  <text
-                    x={innerW + 8}
-                    y={y}
-                    dominantBaseline="middle"
-                    fontSize={9}
-                    fill="#fbbf24"
-                    fontWeight={600}
-                  >
-                    {(divergencePct(sector.weightedPeRatio, sector.equalWeightPeRatio) * 100).toFixed(0)}% gap
-                  </text>
-                )}
               </g>
             );
           })}
 
-          {/* X-axis label */}
-          <text
-            x={innerW / 2}
-            y={rows.length * ROW_HEIGHT + 32}
-            textAnchor="middle"
-            fontSize={10}
-            fill={CHART_COLORS.mutedText}
-          >
-            P/E Ratio
-          </text>
-
           {/* Source attribution */}
           <text
-            x={innerW + MARGIN.right - 8}
-            y={rows.length * ROW_HEIGHT + 32}
+            x={barAreaW + LABEL_W - 8}
+            y={rows.length * ROW_HEIGHT + 44}
             textAnchor="end"
             fontSize={9}
+            fontStyle="italic"
             fill={CHART_COLORS.mutedText}
             fillOpacity={0.5}
           >
@@ -293,37 +310,42 @@ export default function CapVsEqualWeight({ sectors }: CapVsEqualWeightProps) {
           </text>
         </g>
 
-        {/* Legend */}
-        <g transform={`translate(${MARGIN.left}, ${height - 14})`}>
-          <circle cx={0} cy={0} r={5} fill={CHART_COLORS.teal} />
-          <text x={10} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>Cap-Weighted P/E</text>
-          <circle cx={160} cy={0} r={5} fill={CHART_COLORS.purple} />
-          <text x={170} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>Equal-Weight P/E</text>
-          <rect x={320} y={-5} width={20} height={4} fill={CHART_COLORS.gray} fillOpacity={0.4} rx={2} />
-          <text x={344} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>Divergence</text>
-          <rect x={420} y={-8} width={14} height={14} fill={CHART_COLORS.highlight} rx={2} />
-          <text x={438} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>&gt;20% gap</text>
-        </g>
+        {/* Legend — bottom center */}
+        {(() => {
+          const legendY = height - 12;
+          const legendTotalW = 340;
+          const legendX = (width - legendTotalW) / 2;
+          return (
+            <g transform={`translate(${legendX}, ${legendY})`}>
+              <circle cx={0} cy={0} r={5} fill={CHART_COLORS.teal} stroke="white" strokeWidth={1} />
+              <text x={12} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>Cap-Weighted P/E</text>
+              <circle cx={170} cy={0} r={5} fill={CHART_COLORS.purple} stroke="white" strokeWidth={1} />
+              <text x={182} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>Equal-Weight P/E</text>
+            </g>
+          );
+        })()}
       </svg>
 
       {/* Tooltip */}
-      {tooltip.visible && (
-        <div
-          className="absolute z-50 pointer-events-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2 text-xs"
-          style={{
-            left: tooltip.x + 14,
-            top: tooltip.y - 10,
-            transform: tooltip.x > width - 240 ? 'translateX(-110%)' : undefined,
-          }}
-        >
-          <div className="font-bold text-gray-900 dark:text-gray-100 mb-1">{tooltip.sector}</div>
-          <div className="flex flex-col gap-0.5">
-            <span style={{ color: CHART_COLORS.teal }}>Cap-Weighted: <strong>{fmt(tooltip.capPE)}</strong></span>
-            <span style={{ color: CHART_COLORS.purple }}>Equal-Weight: <strong>{fmt(tooltip.equalPE)}</strong></span>
-            <span className="text-gray-400">Divergence: <strong>{(tooltip.divergence * 100).toFixed(1)}%</strong></span>
-          </div>
+      <ChartTooltip x={tooltip.x} y={tooltip.y} visible={tooltip.visible} containerWidth={width}>
+        <div style={{ fontWeight: 700, marginBottom: 6, color: CHART_COLORS.lightText }}>
+          {tooltip.sector}
         </div>
-      )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ color: CHART_COLORS.teal }}>
+            Cap-Weighted: <strong>{fmt(tooltip.capPE)}</strong>
+          </span>
+          <span style={{ color: CHART_COLORS.purple }}>
+            Equal-Weight: <strong>{fmt(tooltip.equalPE)}</strong>
+          </span>
+          <span style={{ color: '#f59e0b' }}>
+            Divergence: <strong>{(tooltip.divergence * 100).toFixed(1)}%</strong>
+          </span>
+          <span style={{ color: CHART_COLORS.mutedText }}>
+            Constituents: <strong style={{ color: CHART_COLORS.lightText }}>{tooltip.constituents}</strong>
+          </span>
+        </div>
+      </ChartTooltip>
     </div>
   );
 }
