@@ -20,17 +20,20 @@ export function useLatestMarketPE(): UseLatestMarketPEResult {
       setLoading(true);
       setError(null);
       try {
-        // Fetch recent 2 years to get the latest data point
+        // Fetch last 5 years to find latest non-zero CAPE (Shiller data can lag 1-2 years)
         const end = todayLocal();
         const startDate = new Date();
-        startDate.setFullYear(startDate.getFullYear() - 2);
+        startDate.setFullYear(startDate.getFullYear() - 5);
         const start = formatLocalDate(startDate);
 
         const result = await fetchShillerHistory(start, end);
         if (isMounted) {
           const points: ShillerHistoryPoint[] = result.data ?? [];
-          if (points.length > 0) {
-            const last = points[points.length - 1];
+          // Find the latest point where cape is actually populated (> 0).
+          // Shiller's upstream dataset lags — recent months may have cape=0.
+          const validPoints = points.filter((p) => p.cape > 0);
+          if (validPoints.length > 0) {
+            const last = validPoints[validPoints.length - 1];
             setLatestCape(last.cape);
           }
           setLoading(false);
