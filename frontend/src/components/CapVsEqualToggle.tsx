@@ -6,10 +6,6 @@ interface CapVsEqualToggleProps {
 }
 
 const MODES: Array<'cap-weighted' | 'equal-weight'> = ['cap-weighted', 'equal-weight'];
-const LABELS: Record<string, string> = {
-  'cap-weighted': 'Cap-Weighted',
-  'equal-weight': 'Equal-Weight',
-};
 
 export default function CapVsEqualToggle({ mode, onChange }: CapVsEqualToggleProps) {
   const index = MODES.indexOf(mode);
@@ -23,6 +19,3 @@ export default function CapVsEqualToggle({ mode, onChange }: CapVsEqualTogglePro
     </TabGroup>
   );
 }
-
-// suppress unused variable warning
-void LABELS;
