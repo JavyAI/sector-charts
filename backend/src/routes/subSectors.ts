@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getConstituentsBySector } from '../services/constituents.js';
+import { getSparklineData, getLatestWeeklyReturnsBulk } from '../services/subSectorData.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = Router();
@@ -30,6 +31,26 @@ router.get('/:sector', asyncHandler(async (req: Request, res: Response) => {
   }
 
   const constituents = getConstituentsBySector(decodedSector);
+  const symbols = constituents.map((c) => c.symbol);
+
+  // Batch queries — one for sparklines, one for weekly returns
+  const [sparklines, weeklyReturns] = await Promise.all([
+    Promise.resolve(getSparklineData(symbols, 20)),
+    Promise.resolve(getLatestWeeklyReturnsBulk(symbols)),
+  ]);
+
+  // Build constituent objects
+  const constituentData = constituents.map((c) => {
+    const wr = weeklyReturns.get(c.symbol);
+    return {
+      symbol: c.symbol,
+      security: c.security,
+      subIndustry: c.gics_sub_industry || 'Unknown',
+      weeklyReturn: wr?.returnPct ?? 0,
+      closePrice: wr?.closePrice ?? null,
+      sparkline: sparklines.get(c.symbol) ?? [],
+    };
+  });
 
   // Group by sub-industry
   const subIndustryMap = new Map<string, string[]>();
@@ -41,11 +62,28 @@ router.get('/:sector', asyncHandler(async (req: Request, res: Response) => {
     subIndustryMap.get(subIndustry)!.push(c.symbol);
   }
 
+  // Build sub-industry summary with average weekly return
   const subIndustries = [...subIndustryMap.entries()]
-    .map(([name, syms]) => ({ name, count: syms.length, constituents: syms.sort() }))
-    .sort((a, b) => b.count - a.count);
+    .map(([name, syms]) => {
+      const returns = syms
+        .map((s) => weeklyReturns.get(s)?.returnPct)
+        .filter((r): r is number => r !== undefined);
+      const avgWeeklyReturn =
+        returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+      return {
+        name,
+        count: syms.length,
+        avgWeeklyReturn: Math.round(avgWeeklyReturn * 100) / 100,
+        constituents: syms.sort(),
+      };
+    })
+    .sort((a, b) => b.avgWeeklyReturn - a.avgWeeklyReturn);
 
-  return res.json({ sector: decodedSector, subIndustries });
+  return res.json({
+    sector: decodedSector,
+    subIndustries,
+    constituents: constituentData,
+  });
 }));
 
 export default router;
