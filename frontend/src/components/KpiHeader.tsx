@@ -30,10 +30,13 @@ export default function KpiHeader({ sectors }: KpiHeaderProps) {
   }, [sectors]);
 
   const spreadPct = useMemo(() => {
-    if (!latestCape || !peData) return null;
+    if (!peData) return null;
     const median = peData.stats.median;
-    return ((latestCape - median) / median) * 100;
-  }, [latestCape, peData]);
+    // Use adjusted CAPE (displayed value) for spread calculation, fall back to traditional
+    const displayedCape = adjustedData?.adjustedCape ?? latestCape;
+    if (!displayedCape) return null;
+    return ((displayedCape - median) / median) * 100;
+  }, [adjustedData, latestCape, peData]);
 
   const capeDiff = useMemo(() => {
     if (!adjustedData) return null;
