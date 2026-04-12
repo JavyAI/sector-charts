@@ -65,6 +65,9 @@ router.post('/seed', asyncHandler(async (_req: Request, res: Response) => {
     return res.status(400).json({ error: 'No constituents in DB. Call /api/constituents/refresh first.' });
   }
 
+  // Clear old sector metrics before re-seeding
+  db.exec('DELETE FROM sector_metrics');
+
   // Sector-level P/E ranges (realistic medians for generating per-stock values)
   const sectorPeRanges: Record<string, [number, number]> = {
     'Information Technology': [25, 55],
