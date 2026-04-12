@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { SectorMetric } from '../types';
 import { CHART_COLORS } from './chartColors';
+import ChartTooltip from './ChartTooltip';
 
 interface PeHistoricalComparisonProps {
   sectors: SectorMetric[];
@@ -13,6 +14,7 @@ interface TooltipState {
   label: string;
   fiveYr: number;
   tenYr: number;
+  currentPE: number;
 }
 
 // Simulated historical offsets (% above/below historical avg P/E)
@@ -31,20 +33,42 @@ const historicalOffsets: Record<string, { fiveYr: number; tenYr: number }> = {
   'Information Technology': { fiveYr: -0.06, tenYr: -0.17 },
 };
 
-const MARGIN = { top: 30, right: 24, bottom: 80, left: 52 };
-const HEIGHT = 400;
-const BAR_GAP = 2;
+const MARGIN = { top: 36, right: 24, bottom: 96, left: 56 };
+const HEIGHT = 420;
+const BAR_PADDING = 8;  // gap between the two bars in a group
+
+// Short sector labels for X axis
+const SHORT_LABELS: Record<string, string> = {
+  'Information Technology': 'Info Tech',
+  'Communication Services': 'Comm. Services',
+  'Consumer Discretionary': 'Con. Disc.',
+  'Consumer Staples': 'Con. Staples',
+  'Health Care': 'Health Care',
+  'Real Estate': 'Real Estate',
+  'Financials': 'Financials',
+  'Industrials': 'Industrials',
+  'Materials': 'Materials',
+  'Utilities': 'Utilities',
+  'Energy': 'Energy',
+  'S&P 500': 'S&P 500',
+};
 
 function fmt(v: number): string {
   const sign = v >= 0 ? '+' : '';
   return `${sign}${(v * 100).toFixed(0)}%`;
 }
 
+function fmtPE(v: number): string {
+  return `${v.toFixed(1)}x`;
+}
+
 export default function PeHistoricalComparison({ sectors }: PeHistoricalComparisonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(900);
   const [mounted, setMounted] = useState(false);
-  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, label: '', fiveYr: 0, tenYr: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState>({
+    visible: false, x: 0, y: 0, label: '', fiveYr: 0, tenYr: 0, currentPE: 0,
+  });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -63,21 +87,22 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
     return () => clearTimeout(t);
   }, []);
 
-  // Build chart data: sectors + S&P 500 aggregate
+  // Compute S&P 500 aggregate P/E
   const totalMarketCap = sectors.reduce((s, x) => s + x.weightedMarketCap, 0);
   const totalEarnings = sectors.reduce((s, x) => s + x.weightedMarketCap / x.weightedPeRatio, 0);
   const sp500PE = totalMarketCap / totalEarnings;
 
   // S&P 500 aggregate simulated offset: median of sector offsets
-  const allFive = sectors.map(s => historicalOffsets[s.sector]?.fiveYr ?? 0);
-  const allTen = sectors.map(s => historicalOffsets[s.sector]?.tenYr ?? 0);
-  const medFive = allFive.sort((a, b) => a - b)[Math.floor(allFive.length / 2)];
-  const medTen = allTen.sort((a, b) => a - b)[Math.floor(allTen.length / 2)];
+  const allFive = [...sectors.map(s => historicalOffsets[s.sector]?.fiveYr ?? 0)].sort((a, b) => a - b);
+  const allTen = [...sectors.map(s => historicalOffsets[s.sector]?.tenYr ?? 0)].sort((a, b) => a - b);
+  const medFive = allFive[Math.floor(allFive.length / 2)];
+  const medTen = allTen[Math.floor(allTen.length / 2)];
 
   interface ChartRow {
     label: string;
     fiveYr: number;
     tenYr: number;
+    currentPE: number;
   }
 
   const rows: ChartRow[] = [
@@ -85,8 +110,9 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
       label: s.sector,
       fiveYr: historicalOffsets[s.sector]?.fiveYr ?? 0,
       tenYr: historicalOffsets[s.sector]?.tenYr ?? 0,
+      currentPE: s.weightedPeRatio,
     })),
-    { label: 'S&P 500', fiveYr: medFive, tenYr: medTen },
+    { label: 'S&P 500', fiveYr: medFive, tenYr: medTen, currentPE: sp500PE },
   ];
 
   // Sort by fiveYr desc
@@ -95,28 +121,40 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
   const innerW = width - MARGIN.left - MARGIN.right;
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
 
-  // Y scale: find max abs value
+  // Y scale
   const allVals = rows.flatMap(r => [r.fiveYr, r.tenYr]);
-  const absMax = Math.max(...allVals.map(Math.abs), 0.05);
-  const yDomain = absMax * 1.3;
+  const absMax = Math.max(...allVals.map(Math.abs), 0.10);
+  const yDomain = absMax * 1.35;
 
   const yScale = useCallback(
     (v: number) => (innerH / 2) - (v / yDomain) * (innerH / 2),
     [innerH, yDomain]
   );
 
-  // X layout: group bars
+  // X layout
   const groupCount = rows.length;
   const groupWidth = innerW / groupCount;
-  const barWidth = Math.max(4, (groupWidth - BAR_GAP * 3) / 2);
+  const barWidth = Math.max(6, (groupWidth - BAR_PADDING * 3) / 2);
 
-  // Y-axis ticks
-  const yTicks = [-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3].filter(v => Math.abs(v) <= yDomain * 1.05);
+  // Y-axis gridlines at fixed %
+  const yTicks = [-0.30, -0.20, -0.10, 0, 0.10, 0.20, 0.30].filter(
+    v => Math.abs(v) <= yDomain * 1.05
+  );
+
+  const zeroY = yScale(0);
 
   const handleMouseEnter = useCallback((e: React.MouseEvent<SVGRectElement>, row: ChartRow) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    setTooltip({ visible: true, x: e.clientX - rect.left, y: e.clientY - rect.top, label: row.label, fiveYr: row.fiveYr, tenYr: row.tenYr });
+    setTooltip({
+      visible: true,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      label: row.label,
+      fiveYr: row.fiveYr,
+      tenYr: row.tenYr,
+      currentPE: row.currentPE,
+    });
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<SVGRectElement>) => {
@@ -129,52 +167,35 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
     setTooltip(prev => ({ ...prev, visible: false }));
   }, []);
 
-  const zeroY = yScale(0);
-
-  // Short sector labels for X axis
-  const shortLabel = (s: string) => {
-    const map: Record<string, string> = {
-      'Information Technology': 'Info Tech',
-      'Communication Services': 'Comm Svcs',
-      'Consumer Discretionary': 'Cons Disc',
-      'Consumer Staples': 'Cons Stap',
-      'Health Care': 'Health Care',
-      'Real Estate': 'Real Estate',
-      'Financials': 'Financials',
-      'Industrials': 'Industrials',
-      'Materials': 'Materials',
-      'Utilities': 'Utilities',
-      'Energy': 'Energy',
-      'S&P 500': 'S&P 500',
-    };
-    return map[s] ?? s;
-  };
-
   return (
     <div ref={containerRef} className="relative w-full select-none" style={{ minHeight: HEIGHT }}>
       <svg
         width={width}
         height={HEIGHT}
-        style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.5s ease', overflow: 'visible' }}
+        style={{ overflow: 'visible' }}
       >
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-          {/* Y-axis ticks and gridlines */}
+
+          {/* Gridlines */}
           {yTicks.map(v => {
             const y = yScale(v);
+            const isZero = v === 0;
             return (
               <g key={v}>
                 <line
                   x1={0} x2={innerW}
                   y1={y} y2={y}
-                  stroke={v === 0 ? '#6b7280' : '#374151'}
-                  strokeWidth={v === 0 ? 1.5 : 1}
-                  strokeDasharray={v === 0 ? undefined : '3 3'}
-                  strokeOpacity={v === 0 ? 0.7 : 0.4}
+                  stroke={isZero ? '#9ca3af' : '#374151'}
+                  strokeWidth={isZero ? 1.5 : 1}
+                  strokeDasharray={isZero ? undefined : '4 4'}
+                  strokeOpacity={isZero ? 0.4 : 0.15}
                 />
                 <text
-                  x={-8} y={y}
-                  textAnchor="end" dominantBaseline="middle"
-                  fontSize={10} fill={CHART_COLORS.mutedText}
+                  x={-10} y={y}
+                  textAnchor="end"
+                  dominantBaseline="middle"
+                  fontSize={11}
+                  fill={CHART_COLORS.mutedText}
                 >
                   {v >= 0 ? '+' : ''}{(v * 100).toFixed(0)}%
                 </text>
@@ -185,36 +206,55 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
           {/* Bars */}
           {rows.map((row, i) => {
             const gx = i * groupWidth + groupWidth / 2;
-            const b1x = gx - barWidth - BAR_GAP / 2;
-            const b2x = gx + BAR_GAP / 2;
+            const b1x = gx - barWidth - BAR_PADDING / 2;
+            const b2x = gx + BAR_PADDING / 2;
 
             const fiveH = Math.abs(yScale(row.fiveYr) - zeroY);
             const tenH = Math.abs(yScale(row.tenYr) - zeroY);
-            const fiveY = row.fiveYr >= 0 ? zeroY - fiveH : zeroY;
-            const tenY = row.tenYr >= 0 ? zeroY - tenH : zeroY;
+            const fiveBarY = row.fiveYr >= 0 ? zeroY - fiveH : zeroY;
+            const tenBarY = row.tenYr >= 0 ? zeroY - tenH : zeroY;
+
+            // Animated height via CSS — bars grow from zero baseline
+            const fiveStyle = mounted
+              ? { transition: `height 0.6s ease ${i * 40}ms, y 0.6s ease ${i * 40}ms` }
+              : {};
+            const tenStyle = mounted
+              ? { transition: `height 0.6s ease ${i * 40 + 20}ms, y 0.6s ease ${i * 40 + 20}ms` }
+              : {};
 
             const isSP500 = row.label === 'S&P 500';
+
+            // Value label positions
+            const fiveLabelY = row.fiveYr >= 0 ? fiveBarY - 5 : fiveBarY + Math.max(fiveH, 2) + 13;
+            const tenLabelY = row.tenYr >= 0 ? tenBarY - 5 : tenBarY + Math.max(tenH, 2) + 13;
+
+            const labelRotate = `rotate(-45, ${gx}, ${innerH + 18})`;
 
             return (
               <g key={row.label}>
                 {/* 5yr bar */}
                 <rect
-                  x={b1x} y={fiveY}
-                  width={barWidth} height={Math.max(fiveH, 2)}
+                  x={b1x}
+                  y={mounted ? fiveBarY : zeroY}
+                  width={barWidth}
+                  height={mounted ? Math.max(fiveH, 2) : 0}
                   fill={CHART_COLORS.teal}
                   fillOpacity={isSP500 ? 1 : 0.85}
                   rx={2}
+                  style={fiveStyle}
                   onMouseEnter={e => handleMouseEnter(e, row)}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
-                  style={{ cursor: 'pointer' }}
+                  cursor="pointer"
                 />
-                {/* 5yr label */}
+
+                {/* 5yr value label */}
                 <text
                   x={b1x + barWidth / 2}
-                  y={row.fiveYr >= 0 ? fiveY - 4 : fiveY + fiveH + 11}
+                  y={fiveLabelY}
                   textAnchor="middle"
-                  fontSize={9} fontWeight={600}
+                  fontSize={11}
+                  fontWeight={600}
                   fill={CHART_COLORS.teal}
                 >
                   {fmt(row.fiveYr)}
@@ -222,96 +262,119 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
 
                 {/* 10yr bar */}
                 <rect
-                  x={b2x} y={tenY}
-                  width={barWidth} height={Math.max(tenH, 2)}
+                  x={b2x}
+                  y={mounted ? tenBarY : zeroY}
+                  width={barWidth}
+                  height={mounted ? Math.max(tenH, 2) : 0}
                   fill={CHART_COLORS.purple}
                   fillOpacity={isSP500 ? 1 : 0.85}
                   rx={2}
+                  style={tenStyle}
                   onMouseEnter={e => handleMouseEnter(e, row)}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
-                  style={{ cursor: 'pointer' }}
+                  cursor="pointer"
                 />
-                {/* 10yr label */}
+
+                {/* 10yr value label */}
                 <text
                   x={b2x + barWidth / 2}
-                  y={row.tenYr >= 0 ? tenY - 4 : tenY + tenH + 11}
+                  y={tenLabelY}
                   textAnchor="middle"
-                  fontSize={9} fontWeight={600}
+                  fontSize={11}
+                  fontWeight={600}
                   fill={CHART_COLORS.purple}
                 >
                   {fmt(row.tenYr)}
                 </text>
 
-                {/* X-axis label */}
+                {/* X-axis sector label */}
                 <text
-                  x={gx} y={innerH + 14}
-                  textAnchor="middle"
-                  fontSize={9.5}
+                  x={gx}
+                  y={innerH + 18}
+                  textAnchor="end"
+                  fontSize={11}
                   fill={CHART_COLORS.mutedText}
-                  transform={`rotate(-30, ${gx}, ${innerH + 14})`}
+                  transform={labelRotate}
                 >
-                  {shortLabel(row.label)}
+                  {SHORT_LABELS[row.label] ?? row.label}
                 </text>
               </g>
             );
           })}
 
-          {/* S&P 500 separator line */}
+          {/* S&P 500 separator */}
           {(() => {
-            const sp500Idx = rows.findIndex(r => r.label === 'S&P 500');
-            if (sp500Idx < 0) return null;
-            const x = sp500Idx * groupWidth - groupWidth * 0.1;
+            const idx = rows.findIndex(r => r.label === 'S&P 500');
+            if (idx < 0) return null;
+            const x = idx * groupWidth - groupWidth * 0.15;
             return (
               <line
                 x1={x} x2={x}
                 y1={0} y2={innerH}
                 stroke={CHART_COLORS.mutedText}
-                strokeOpacity={0.3}
+                strokeOpacity={0.25}
                 strokeDasharray="4 3"
               />
             );
           })()}
         </g>
 
-        {/* Legend */}
-        <g transform={`translate(${MARGIN.left}, ${HEIGHT - 20})`}>
-          <circle cx={0} cy={0} r={5} fill={CHART_COLORS.teal} />
-          <text x={10} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>
-            % above 5-year average P/E ratio
-          </text>
-          <circle cx={220} cy={0} r={5} fill={CHART_COLORS.purple} />
-          <text x={230} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>
-            % above 10-year average P/E ratio
-          </text>
-          <text x={innerW + MARGIN.right - 10} y={0} textAnchor="end" fontSize={9} fill={CHART_COLORS.mutedText} fillOpacity={0.6}>
-            Source: Sector Charts Dashboard (simulated)
-          </text>
-        </g>
+        {/* Legend — bottom center */}
+        {(() => {
+          const legendY = HEIGHT - 18;
+          const totalLegendW = 440;
+          const legendX = (width - totalLegendW) / 2;
+          return (
+            <g transform={`translate(${legendX}, ${legendY})`}>
+              <circle cx={0} cy={0} r={5} fill={CHART_COLORS.teal} />
+              <text x={12} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>
+                % above 5-year average P/E
+              </text>
+              <circle cx={220} cy={0} r={5} fill={CHART_COLORS.purple} />
+              <text x={232} y={0} dominantBaseline="middle" fontSize={11} fill={CHART_COLORS.mutedText}>
+                % above 10-year average P/E
+              </text>
+            </g>
+          );
+        })()}
+
+        {/* Source attribution */}
+        <text
+          x={width - 8}
+          y={HEIGHT - 4}
+          textAnchor="end"
+          fontSize={9}
+          fontStyle="italic"
+          fill={CHART_COLORS.mutedText}
+          fillOpacity={0.5}
+        >
+          Source: Sector Charts Dashboard (simulated)
+        </text>
       </svg>
 
-      {/* Simulated data notice */}
-      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-right pr-2">
-        * Historical averages are simulated — replace with Polygon pipeline data
-      </div>
-
       {/* Tooltip */}
-      {tooltip.visible && (
-        <div
-          className="absolute z-50 pointer-events-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg px-3 py-2 text-xs"
-          style={{
-            left: tooltip.x + 14,
-            top: tooltip.y - 10,
-            transform: tooltip.x > width - 220 ? 'translateX(-110%)' : undefined,
-          }}
-        >
-          <div className="font-bold text-gray-900 dark:text-gray-100 mb-1">{tooltip.label}</div>
-          <div className="flex gap-3">
-            <span style={{ color: CHART_COLORS.teal }}>5yr avg: <strong>{fmt(tooltip.fiveYr)}</strong></span>
-            <span style={{ color: CHART_COLORS.purple }}>10yr avg: <strong>{fmt(tooltip.tenYr)}</strong></span>
-          </div>
+      <ChartTooltip
+        x={tooltip.x}
+        y={tooltip.y}
+        visible={tooltip.visible}
+        containerWidth={width}
+      >
+        <div style={{ fontWeight: 700, marginBottom: 6, color: CHART_COLORS.lightText }}>
+          {tooltip.label}
         </div>
-      )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ color: CHART_COLORS.teal }}>
+            5yr avg: <strong>{fmt(tooltip.fiveYr)}</strong>
+          </span>
+          <span style={{ color: CHART_COLORS.purple }}>
+            10yr avg: <strong>{fmt(tooltip.tenYr)}</strong>
+          </span>
+          <span style={{ color: CHART_COLORS.mutedText }}>
+            Current P/E: <strong style={{ color: CHART_COLORS.lightText }}>{fmtPE(tooltip.currentPE)}</strong>
+          </span>
+        </div>
+      </ChartTooltip>
     </div>
   );
 }
