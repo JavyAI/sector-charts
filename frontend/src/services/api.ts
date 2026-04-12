@@ -48,12 +48,23 @@ export async function fetchWeeklyReturns(date?: string): Promise<StockWeeklyRetu
 export interface SubIndustry {
   name: string;
   count: number;
+  avgWeeklyReturn: number;
   constituents: string[];
+}
+
+export interface SubSectorConstituent {
+  symbol: string;
+  security: string;
+  subIndustry: string;
+  weeklyReturn: number;
+  closePrice: number | null;
+  sparkline: number[];
 }
 
 export interface SubSectorsResponse {
   sector: string;
   subIndustries: SubIndustry[];
+  constituents: SubSectorConstituent[];
 }
 
 export async function fetchSubSectors(sector: string): Promise<SubSectorsResponse> {

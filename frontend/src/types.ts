@@ -13,3 +13,15 @@ export interface SectorDataResponse {
   sectors: SectorMetric[];
 }
 
+export interface Constituent {
+  symbol: string;
+  security: string;
+  gics_sector: string;
+  gics_sub_industry: string;
+}
+
+export interface ConstituentResponse {
+  count: number;
+  constituents: Constituent[];
+}
+

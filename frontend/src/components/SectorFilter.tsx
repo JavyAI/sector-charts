@@ -1,4 +1,4 @@
-import { MultiSelect, MultiSelectItem } from '@tremor/react';
+import { Flex, MultiSelect, MultiSelectItem, Text } from '@tremor/react';
 import { SectorMetric } from '../types';
 
 interface SectorFilterProps {
@@ -15,8 +15,8 @@ export default function SectorFilter({ sectors, visibleSectors, onChange }: Sect
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-tremor-content-emphasis font-medium whitespace-nowrap">Sectors:</span>
+    <Flex alignItems="center" className="gap-2">
+      <Text className="font-medium whitespace-nowrap">Sectors:</Text>
       <MultiSelect
         value={selected}
         onValueChange={handleChange}
@@ -29,6 +29,6 @@ export default function SectorFilter({ sectors, visibleSectors, onChange }: Sect
           </MultiSelectItem>
         ))}
       </MultiSelect>
-    </div>
+    </Flex>
   );
 }

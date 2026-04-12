@@ -1,52 +1,168 @@
-import { useEffect, useState } from 'react';
-import { fetchSubSectors, SubSectorsResponse } from '../services/api';
+import { useState, useMemo } from 'react';
+import { useSubSectorData } from '../hooks/useSubSectorData';
+import { SubSectorConstituent } from '../services/api';
+import SubSectorCharts from './SubSectorCharts';
+import Sparkline from './Sparkline';
 
 interface SubSectorDrillDownProps {
   sector: string | null;
   onClose: () => void;
 }
 
-export default function SubSectorDrillDown({ sector, onClose }: SubSectorDrillDownProps) {
-  const [data, setData] = useState<SubSectorsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+type SortKey = 'symbol' | 'security' | 'subIndustry' | 'weeklyReturn' | 'closePrice';
+type SortDir = 'asc' | 'desc';
 
-  useEffect(() => {
-    if (!sector) {
-      setData(null);
-      return;
+function returnBg(ret: number): string {
+  if (ret >= 5) return 'bg-green-900/60';
+  if (ret >= 2) return 'bg-green-900/30';
+  if (ret <= -5) return 'bg-red-900/60';
+  if (ret <= -2) return 'bg-red-900/30';
+  return '';
+}
+
+function returnColor(ret: number): string {
+  if (ret > 0) return 'text-green-400';
+  if (ret < 0) return 'text-red-400';
+  return 'text-gray-400';
+}
+
+function fmtPrice(p: number | null): string {
+  if (p === null) return '—';
+  return `$${p.toFixed(2)}`;
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  currentKey,
+  dir,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  currentKey: SortKey;
+  dir: SortDir;
+  onSort: (k: SortKey) => void;
+}) {
+  return (
+    <th
+      className="text-left py-2 pr-3 text-xs font-semibold text-gray-400 cursor-pointer select-none hover:text-gray-200 whitespace-nowrap"
+      onClick={() => onSort(sortKey)}
+    >
+      {label}
+      {currentKey === sortKey ? (dir === 'asc' ? ' ↑' : ' ↓') : ''}
+    </th>
+  );
+}
+
+function ConstituentTable({ constituents }: { constituents: SubSectorConstituent[] }) {
+  const [sortKey, setSortKey] = useState<SortKey>('weeklyReturn');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
     }
-    setLoading(true);
-    setError(null);
-    fetchSubSectors(sector)
-      .then((res) => setData(res))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load sub-sectors'))
-      .finally(() => setLoading(false));
-  }, [sector]);
+  };
+
+  const sorted = useMemo(() => {
+    return [...constituents].sort((a, b) => {
+      let av: string | number;
+      let bv: string | number;
+      switch (sortKey) {
+        case 'symbol': av = a.symbol; bv = b.symbol; break;
+        case 'security': av = a.security; bv = b.security; break;
+        case 'subIndustry': av = a.subIndustry; bv = b.subIndustry; break;
+        case 'weeklyReturn': av = a.weeklyReturn; bv = b.weeklyReturn; break;
+        case 'closePrice': av = a.closePrice ?? -Infinity; bv = b.closePrice ?? -Infinity; break;
+        default: av = 0; bv = 0;
+      }
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return sortDir === 'asc' ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+  }, [constituents, sortKey, sortDir]);
+
+  return (
+    <div className="overflow-auto">
+      <table className="w-full text-xs min-w-[640px]">
+        <thead className="sticky top-0 bg-gray-900 z-10">
+          <tr className="border-b border-gray-700">
+            <SortableHeader label="Symbol" sortKey="symbol" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
+            <SortableHeader label="Company" sortKey="security" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
+            <SortableHeader label="Sub-Industry" sortKey="subIndustry" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
+            <SortableHeader label="Return" sortKey="weeklyReturn" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
+            <SortableHeader label="Price" sortKey="closePrice" currentKey={sortKey} dir={sortDir} onSort={handleSort} />
+            <th className="text-left py-2 text-xs font-semibold text-gray-400">Sparkline (20d)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((c) => (
+            <tr
+              key={c.symbol}
+              className={`border-b border-gray-800 hover:bg-gray-800/40 ${returnBg(c.weeklyReturn)}`}
+            >
+              <td className="py-1.5 pr-3 font-mono font-bold text-gray-100">{c.symbol}</td>
+              <td className="py-1.5 pr-3 text-gray-300 truncate max-w-[160px]" title={c.security}>
+                {c.security}
+              </td>
+              <td className="py-1.5 pr-3 text-gray-400 truncate max-w-[140px]" title={c.subIndustry}>
+                {c.subIndustry}
+              </td>
+              <td className={`py-1.5 pr-3 font-semibold ${returnColor(c.weeklyReturn)}`}>
+                {c.weeklyReturn >= 0 ? '+' : ''}{c.weeklyReturn.toFixed(2)}%
+              </td>
+              <td className="py-1.5 pr-3 text-gray-300">{fmtPrice(c.closePrice)}</td>
+              <td className="py-1.5">
+                <Sparkline data={c.sparkline} width={120} height={32} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function SubSectorDrillDown({ sector, onClose }: SubSectorDrillDownProps) {
+  const { data, loading, error } = useSubSectorData(sector);
 
   if (!sector) return null;
 
-  const maxCount = data ? Math.max(...data.subIndustries.map((s) => s.count), 1) : 1;
+  const totalConstituents = data?.constituents.length ?? 0;
+  const withSparklines = data?.constituents.filter((c) => c.sparkline.length > 0).length ?? 0;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-4 pb-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4"
+        className="bg-gray-900 rounded-xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700 sticky top-0 bg-gray-900 z-20">
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{sector}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Sub-Industry Breakdown</p>
+            <h2 className="text-lg font-bold text-gray-100">{sector}</h2>
+            <p className="text-sm text-gray-400">
+              Sub-Sector Analysis
+              {data && (
+                <span className="ml-2 text-gray-500">
+                  · {data.subIndustries.length} sub-industries · {totalConstituents} constituents
+                  {withSparklines > 0 && ` · ${withSparklines} with sparklines`}
+                </span>
+              )}
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none font-light"
+            className="text-gray-400 hover:text-gray-100 text-2xl leading-none font-light px-2"
             aria-label="Close"
           >
             &times;
@@ -54,74 +170,39 @@ export default function SubSectorDrillDown({ sector, onClose }: SubSectorDrillDo
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4">
+        <div className="px-6 py-5 space-y-8 flex-1">
           {loading && (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Loading sub-industries...</p>
+            <div className="flex items-center justify-center py-16">
+              <p className="text-gray-400 text-sm">Loading sub-sector data...</p>
+            </div>
           )}
+
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
+            <div className="py-8 text-center">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
           )}
 
           {data && !loading && (
             <>
-              {/* Bar list by sub-industry */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Sub-Industries ({data.subIndustries.length})
+              {/* Charts section */}
+              <section>
+                <h3 className="text-sm font-semibold text-gray-300 mb-4">
+                  Sub-Industry Performance
                 </h3>
-                <div className="space-y-2">
-                  {data.subIndustries.map((sub) => (
-                    <div key={sub.name}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1 mr-2">
-                          {sub.name}
-                        </span>
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 shrink-0">
-                          {sub.count}
-                        </span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-blue-500"
-                          style={{ width: `${(sub.count / maxCount) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <SubSectorCharts
+                  subIndustries={data.subIndustries}
+                  constituents={data.constituents}
+                />
+              </section>
 
               {/* Constituent table */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  All Constituents ({data.subIndustries.reduce((n, s) => n + s.count, 0)})
+              <section>
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">
+                  Constituents ({totalConstituents})
                 </h3>
-                <div className="overflow-auto max-h-64">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-1.5 pr-3 font-semibold text-gray-600 dark:text-gray-400">Symbol</th>
-                        <th className="text-left py-1.5 font-semibold text-gray-600 dark:text-gray-400">Sub-Industry</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.subIndustries.flatMap((sub) =>
-                        sub.constituents.map((symbol) => (
-                          <tr
-                            key={symbol}
-                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <td className="py-1.5 pr-3 font-mono font-semibold text-gray-900 dark:text-gray-100">
-                              {symbol}
-                            </td>
-                            <td className="py-1.5 text-gray-500 dark:text-gray-400">{sub.name}</td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                <ConstituentTable constituents={data.constituents} />
+              </section>
             </>
           )}
         </div>

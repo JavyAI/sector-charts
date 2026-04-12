@@ -1,4 +1,4 @@
-import { DatePicker } from '@tremor/react';
+import { DatePicker, Flex, Text } from '@tremor/react';
 import { formatLocalDate } from '../utils/date';
 
 interface DateRangePickerProps {
@@ -17,14 +17,14 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-tremor-content-emphasis font-medium whitespace-nowrap">Select Date:</span>
+    <Flex alignItems="center" className="gap-2">
+      <Text className="font-medium whitespace-nowrap">Select Date:</Text>
       <DatePicker
         value={dateValue}
         onValueChange={handleChange}
         maxDate={maxDate}
         className="w-44"
       />
-    </div>
+    </Flex>
   );
 }

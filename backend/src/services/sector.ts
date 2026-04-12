@@ -91,6 +91,20 @@ export class SectorService {
   }
 
   /**
+   * Returns the most recent date that has sector_metrics data, or null
+   * if the table is empty. Used by the /api/sectors/latest endpoint and
+   * the Railway healthcheck so it always returns 200 as long as any data
+   * exists (instead of 404 on a hardcoded date).
+   */
+  getLatestDate(): string | null {
+    const db = getDatabase();
+    const row = db
+      .prepare('SELECT MAX(date) AS latest FROM sector_metrics')
+      .get() as { latest: string | null } | undefined;
+    return row?.latest ?? null;
+  }
+
+  /**
    * Queries sector_metrics for all sectors on a given date, ordered by sector name.
    */
   getSectorsForDate(date: string): SectorMetric[] {
