@@ -5,6 +5,7 @@ import { initializeDatabase } from './db/connection.js';
 import sectorsRouter from './routes/sectors.js';
 import constituentsRouter from './routes/constituents.js';
 import shillerRouter from './routes/shiller.js';
+import stockPricesRouter from './routes/stockPrices.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './logger.js';
 
@@ -34,6 +35,7 @@ app.get('/health', (req, res) => {
 app.use('/api/sectors', sectorsRouter);
 app.use('/api/constituents', constituentsRouter);
 app.use('/api/shiller', shillerRouter);
+app.use('/api/stock-prices', stockPricesRouter);
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 app.use(errorHandler);
