@@ -83,8 +83,8 @@ export default function SectorVsExSector({ sectors }: SectorVsExSectorProps) {
   const maxPE = Math.max(...rows.flatMap(r => [r.sectorPE, r.exSectorPE]), sp500PE) * 1.1;
   const peToW = (pe: number) => (pe / maxPE) * halfW;
 
-  // X-axis ticks
-  const xTicks = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50].filter(v => peToW(v) <= halfW * 1.02);
+  // X-axis ticks — use wider spacing to avoid overlap
+  const xTicks = [10, 20, 30, 40, 50].filter(v => peToW(v) <= halfW * 0.95);
 
   const handleMouseEnter = useCallback((e: React.MouseEvent<SVGElement>, row: Row) => {
     const rect = containerRef.current?.getBoundingClientRect();

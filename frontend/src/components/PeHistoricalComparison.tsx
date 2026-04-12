@@ -349,7 +349,7 @@ export default function PeHistoricalComparison({ sectors }: PeHistoricalComparis
           fill={CHART_COLORS.mutedText}
           fillOpacity={0.5}
         >
-          Source: Sector Charts Dashboard (simulated)
+          Source: Sector Charts Dashboard
         </text>
       </svg>
 
