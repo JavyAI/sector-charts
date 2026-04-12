@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Callout, Card, Flex, Grid, Title, Subtitle, Text } from '@tremor/react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
-import TimelapseControl from './components/TimelapseControl';
 import SectorFilter from './components/SectorFilter';
 import CapVsEqualToggle from './components/CapVsEqualToggle';
 import { MarketContextCard } from './components/MarketContextCard';
@@ -14,6 +13,7 @@ import DispersionChart from './components/DispersionChart';
 import PeHistoricalComparison from './components/PeHistoricalComparison';
 import SectorVsExSector from './components/SectorVsExSector';
 import CapVsEqualWeight from './components/CapVsEqualWeight';
+import SubSectorDrillDown from './components/SubSectorDrillDown';
 import { useSectorData } from './hooks/useSectorData';
 import { useDispersionData } from './hooks/useDispersionData';
 import { todayLocal } from './utils/date';
@@ -32,6 +32,7 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<string>(todayLocal());
   const [visibleSectors, setVisibleSectors] = useState<Set<string>>(new Set<string>());
   const [displayMode, setDisplayMode] = useState<'cap-weighted' | 'equal-weight'>('cap-weighted');
+  const [drillDownSector, setDrillDownSector] = useState<string | null>(null);
   const { data, loading, error } = useSectorData(selectedDate);
   const dispersionData = useDispersionData();
   const hasInitializedRef = useRef(false);
@@ -65,7 +66,6 @@ function App() {
           <Flex flexDirection="row" justifyContent="start" className="gap-4 flex-wrap">
             <DateRangePicker value={selectedDate} onChange={setSelectedDate} />
             <CapVsEqualToggle mode={displayMode} onChange={setDisplayMode} />
-            <TimelapseControl onDateChange={setSelectedDate} currentDate={selectedDate} />
           </Flex>
 
           {/* Sector Filter */}
@@ -101,6 +101,7 @@ function App() {
                   data={data.sectors}
                   visibleSectors={visibleSectors}
                   displayMode={displayMode}
+                  onSectorClick={setDrillDownSector}
                 />
               </div>
               <div className="flex flex-col gap-4">
@@ -110,7 +111,7 @@ function App() {
             </Grid>
 
             {/* Full-width Sector Table */}
-            <SectorTable sectors={data.sectors} />
+            <SectorTable sectors={data.sectors} onSectorClick={setDrillDownSector} />
           </>
         )}
 
@@ -145,24 +146,30 @@ function App() {
             <Card className="mt-6">
               <Title>Current P/E vs Historical Averages</Title>
               <Text className="mb-4">How each sector's current valuation compares to its 5-year and 10-year average</Text>
-              <PeHistoricalComparison sectors={data.sectors} />
+              <PeHistoricalComparison sectors={data.sectors} onSectorClick={setDrillDownSector} />
             </Card>
 
             <Grid numItems={1} numItemsLg={2} className="mt-6 gap-6">
               <Card>
                 <Title>Sector vs Ex-Sector Valuations</Title>
                 <Text className="mb-4">Forward P/E-Ratios: with and without each sector</Text>
-                <SectorVsExSector sectors={data.sectors} />
+                <SectorVsExSector sectors={data.sectors} onSectorClick={setDrillDownSector} />
               </Card>
               <Card>
                 <Title>Cap vs Equal-Weight: How Different Is the Story?</Title>
                 <Text className="mb-4">Cap-Weighted Return vs Average Stock Return</Text>
-                <CapVsEqualWeight sectors={data.sectors} />
+                <CapVsEqualWeight sectors={data.sectors} onSectorClick={setDrillDownSector} />
               </Card>
             </Grid>
           </>
         )}
       </div>
+
+      {/* Sub-sector drill-down modal */}
+      <SubSectorDrillDown
+        sector={drillDownSector}
+        onClose={() => setDrillDownSector(null)}
+      />
     </div>
   );
 }
