@@ -3,6 +3,7 @@ import { logger } from '../logger.js';
 import { getDatabase } from '../db/connection.js';
 import { fetchPrivateCsvFromGitHub } from './privateDataSource.js';
 import { validateShillerCsv } from '../utils/validation.js';
+import { splitCsvLine } from '../utils/csv.js';
 
 export interface ShillerDataPoint {
   date: string;
@@ -48,7 +49,7 @@ function parseCSV(csv: string): ShillerDataPoint[] {
   const points: ShillerDataPoint[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(',');
+    const cols = splitCsvLine(lines[i]);
     if (cols.length < 10) continue;
     const dateRaw = cols[0].trim();
     if (!dateRaw) continue;

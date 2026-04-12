@@ -1,14 +1,35 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response } from 'express';
 import { sectorService } from '../services/sector.js';
 import { cacheService } from '../services/cache.js';
-import { validateSectorName } from '../utils/validation.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { SectorMetric } from '../types.js';
 
 const router = Router();
 
-const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>) => (req: Request, res: Response, next: NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
+// GET /api/sectors/latest — returns the most recent date's sector data.
+// Used as the Railway healthcheck target so the service stays healthy
+// as long as any data exists (instead of 404 on a hardcoded date).
+router.get('/latest', asyncHandler(async (req: Request, res: Response) => {
+  const latestDate = sectorService.getLatestDate();
+  if (!latestDate) {
+    return res.status(503).json({ error: 'No sector data available yet' });
+  }
+
+  const cacheKey = `sectors:latest`;
+  const cached = cacheService.get<{ date: string; sectors: SectorMetric[] }>(cacheKey);
+  if (cached && cached.date === latestDate) {
+    return res.json(cached);
+  }
+
+  const sectors = sectorService.getSectorsForDate(latestDate);
+  if (sectors.length === 0) {
+    return res.status(503).json({ error: 'No sector data available yet' });
+  }
+
+  const result = { date: latestDate, sectors };
+  cacheService.set(cacheKey, result, 1); // 1-hour cache for healthcheck
+  return res.json(result);
+}));
 
 // GET /api/sectors?date=YYYY-MM-DD
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
@@ -31,81 +52,6 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const result = { date, sectors };
   cacheService.set(cacheKey, result, 24);
   return res.json(result);
-}));
-
-// GET /api/sectors/:sectorName?date=YYYY-MM-DD
-router.get('/:sectorName', asyncHandler(async (req: Request, res: Response) => {
-  const sectorName = req.params.sectorName;
-  if (!validateSectorName(sectorName)) {
-    return res.status(400).json({ error: 'Invalid sector name.' });
-  }
-  const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
-
-  const sectors = sectorService.getSectorsForDate(date);
-  const current = sectors.find((s) => s.sector === sectorName);
-  if (!current) {
-    return res.status(404).json({ error: `Sector '${sectorName}' not found for date ${date}` });
-  }
-
-  const allHistory = sectorService.getSectorHistory(sectorName);
-  // Exclude the current date so historical averages are not self-referential
-  const history = allHistory.filter((h) => h.date < current.date);
-
-  const fiveYearsAgo = new Date();
-  fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-  const fiveYearStr = fiveYearsAgo.toISOString().split('T')[0];
-
-  const history5yr = history.filter((h) => h.date >= fiveYearStr);
-
-  const avg5yr =
-    history5yr.length > 0
-      ? history5yr.reduce((sum, h) => sum + h.weightedPeRatio, 0) / history5yr.length
-      : 0;
-
-  const avg10yr =
-    history.length > 0
-      ? history.reduce((sum, h) => sum + h.weightedPeRatio, 0) / history.length
-      : 0;
-
-  const peRatioPctChange5Yr = sectorService.calculatePeChangePercentage(
-    current.weightedPeRatio,
-    avg5yr,
-  );
-  const peRatioPctChange10Yr = sectorService.calculatePeChangePercentage(
-    current.weightedPeRatio,
-    avg10yr,
-  );
-
-  return res.json({
-    ...current,
-    weightedPeRatio: Math.round(current.weightedPeRatio * 10) / 10,
-    equalWeightPeRatio: Math.round(current.equalWeightPeRatio * 10) / 10,
-    peRatioPctChange5Yr,
-    peRatioPctChange10Yr,
-  });
-}));
-
-// GET /api/sectors/:sectorName/history?days=365
-router.get('/:sectorName/history', asyncHandler(async (req: Request, res: Response) => {
-  const { sectorName } = req.params;
-  if (!validateSectorName(sectorName)) {
-    return res.status(400).json({ error: 'Invalid sector name.' });
-  }
-  const days = parseInt((req.query.days as string) || '365', 10);
-  if (isNaN(days) || days < 1 || days > 3650) {
-    return res.status(400).json({ error: 'Invalid days parameter. Must be between 1 and 3650.' });
-  }
-
-  const history = sectorService.getSectorHistory(sectorName, days);
-  if (history.length === 0) {
-    return res.status(404).json({ error: `No history found for sector '${sectorName}'` });
-  }
-
-  return res.json({
-    sector: sectorName,
-    dataPoints: history.length,
-    history,
-  });
 }));
 
 export default router;

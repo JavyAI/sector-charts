@@ -3,6 +3,7 @@ import { logger } from '../logger.js';
 import { getDatabase } from '../db/connection.js';
 import { fetchPrivateCsvFromGitHub } from './privateDataSource.js';
 import { validateConstituentsCsv } from '../utils/validation.js';
+import { splitCsvLine } from '../utils/csv.js';
 
 export interface Constituent {
   symbol: string;
@@ -38,44 +39,6 @@ function parseCsv(text: string): Record<string, string>[] {
   }
 
   return rows;
-}
-
-/**
- * Split a single CSV line into fields, respecting double-quoted fields.
- */
-function splitCsvLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-
-    if (inQuotes) {
-      if (ch === '"') {
-        // Check for escaped quote ""
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        fields.push(current);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-  }
-  fields.push(current);
-  return fields;
 }
 
 export async function fetchConstituentsFromGitHub(): Promise<Constituent[]> {
