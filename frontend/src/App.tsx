@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Badge, Callout, Card, Flex, Grid, Title, Subtitle, Text } from '@tremor/react';
+import { Callout, Card, Flex, Grid, Title, Subtitle, Text } from '@tremor/react';
 import SectorChart from './components/SectorChart';
 import DateRangePicker from './components/DateRangePicker';
 import TimelapseControl from './components/TimelapseControl';
@@ -12,11 +12,8 @@ import SectorTable from './components/SectorTable';
 import DarkModeToggle from './components/DarkModeToggle';
 import DispersionChart from './components/DispersionChart';
 import PeHistoricalComparison from './components/PeHistoricalComparison';
-import PeHistoricalComparisonTremor from './components/PeHistoricalComparisonTremor';
 import SectorVsExSector from './components/SectorVsExSector';
-import SectorVsExSectorTremor from './components/SectorVsExSectorTremor';
 import CapVsEqualWeight from './components/CapVsEqualWeight';
-import CapVsEqualWeightTremor from './components/CapVsEqualWeightTremor';
 import { useSectorData } from './hooks/useSectorData';
 import { useDispersionData } from './hooks/useDispersionData';
 import { todayLocal } from './utils/date';
@@ -142,57 +139,25 @@ function App() {
           </Callout>
         )}
 
-        {/* === CHART COMPARISON: Before (SVG) vs After (Tremor) === */}
+        {/* Duality-Style Analysis */}
         {data && (
           <>
-            {/* Chart 1 Comparison */}
-            <Title className="mt-8 mb-2">Chart 1: P/E vs Historical Averages</Title>
-            <Grid numItems={1} numItemsLg={2} className="gap-4 mb-6">
-              <Card>
-                <Badge color="gray" className="mb-2">Current (Custom SVG)</Badge>
-                <Title className="mb-1">Current P/E vs Historical Averages</Title>
-                <Text className="mb-4">How each sector's current P/E compares to its 5-year and 10-year average</Text>
-                <PeHistoricalComparison sectors={data.sectors} />
-              </Card>
-              <Card>
-                <Badge color="teal" className="mb-2">Proposed (Tremor)</Badge>
-                <Title className="mb-1">Current P/E vs Historical Averages</Title>
-                <Text className="mb-4">How each sector's current P/E compares to its 5-year and 10-year average</Text>
-                <PeHistoricalComparisonTremor sectors={data.sectors} />
-              </Card>
-            </Grid>
+            <Card className="mt-6">
+              <Title>Current P/E vs Historical Averages</Title>
+              <Text className="mb-4">How each sector's current valuation compares to its 5-year and 10-year average</Text>
+              <PeHistoricalComparison sectors={data.sectors} />
+            </Card>
 
-            {/* Chart 2 Comparison */}
-            <Title className="mt-4 mb-2">Chart 2: Sector vs Ex-Sector</Title>
-            <Grid numItems={1} numItemsLg={2} className="gap-4 mb-6">
+            <Grid numItems={1} numItemsLg={2} className="mt-6 gap-6">
               <Card>
-                <Badge color="gray" className="mb-2">Current (Custom SVG)</Badge>
-                <Title className="mb-1">Sector vs Ex-Sector Valuations</Title>
-                <Text className="mb-4">Forward P/E with and without each sector</Text>
+                <Title>Sector vs Ex-Sector Valuations</Title>
+                <Text className="mb-4">Forward P/E-Ratios: with and without each sector</Text>
                 <SectorVsExSector sectors={data.sectors} />
               </Card>
               <Card>
-                <Badge color="teal" className="mb-2">Proposed (Tremor)</Badge>
-                <Title className="mb-1">Sector vs Ex-Sector Valuations</Title>
-                <Text className="mb-4">Forward P/E with and without each sector</Text>
-                <SectorVsExSectorTremor sectors={data.sectors} />
-              </Card>
-            </Grid>
-
-            {/* Chart 3 Comparison */}
-            <Title className="mt-4 mb-2">Chart 3: Cap vs Equal-Weight</Title>
-            <Grid numItems={1} numItemsLg={2} className="gap-4 mb-6">
-              <Card>
-                <Badge color="gray" className="mb-2">Current (Custom SVG)</Badge>
-                <Title className="mb-1">Cap-Weighted vs Equal-Weight</Title>
-                <Text className="mb-4">How the largest stocks skew each sector's valuation</Text>
+                <Title>Cap vs Equal-Weight: How Different Is the Story?</Title>
+                <Text className="mb-4">Cap-Weighted Return vs Average Stock Return</Text>
                 <CapVsEqualWeight sectors={data.sectors} />
-              </Card>
-              <Card>
-                <Badge color="teal" className="mb-2">Proposed (Tremor)</Badge>
-                <Title className="mb-1">Cap-Weighted vs Equal-Weight</Title>
-                <Text className="mb-4">How the largest stocks skew each sector's valuation</Text>
-                <CapVsEqualWeightTremor sectors={data.sectors} />
               </Card>
             </Grid>
           </>
