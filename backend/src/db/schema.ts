@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { createConstituentsSchema } from './constituents-schema.js';
 import { createShillerSchema } from './shiller-schema.js';
+import { createStockPricesSchema } from './stock-prices-schema.js';
 
 export const createSchema = (db: Database.Database) => {
   // S&P 500 constituents (GICS)
@@ -8,6 +9,9 @@ export const createSchema = (db: Database.Database) => {
 
   // Shiller historical S&P 500 P/E data
   createShillerSchema(db);
+
+  // Stock EOD prices and weekly returns
+  createStockPricesSchema(db);
 
   // Daily stock fundamentals
   db.exec(`
