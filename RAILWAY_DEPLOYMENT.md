@@ -26,7 +26,8 @@ In Railway's **Environment** tab, set:
 NODE_ENV=production
 PORT=3000
 DATABASE_PATH=/data/sectors.db
-POLYGON_API_KEY=<your_polygon_api_key>
+# POLYGON_API_KEY — reserved for future direct-Polygon integration (optional, not currently required)
+# POLYGON_API_KEY=<your_polygon_api_key>
 CACHE_TTL_HOURS=24
 POLYGON_RATE_LIMIT_REQUESTS=600
 POLYGON_RATE_LIMIT_WINDOW_MS=60000

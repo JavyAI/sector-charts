@@ -23,10 +23,15 @@ if (isNaN(rateLimitWindowMs) || rateLimitWindowMs < 1) {
 }
 
 const nodeEnv = process.env.NODE_ENV || 'development';
-const corsOrigin = process.env.CORS_ORIGIN || (nodeEnv === 'production' ? 'https://yourdomain.com' : 'http://localhost:5173');
+let corsOrigin = process.env.CORS_ORIGIN;
+if (!corsOrigin) {
+  if (nodeEnv === 'production') {
+    throw new Error('CORS_ORIGIN environment variable is required in production');
+  }
+  corsOrigin = 'http://localhost:5173';
+}
 
 export const config = {
-  polygonApiKey: process.env.POLYGON_API_KEY || '',
   nodeEnv,
   port,
   databasePath: process.env.DATABASE_PATH || './data/sectors.db',
@@ -45,10 +50,5 @@ export const config = {
     filePath: process.env.SHILLER_FILE_PATH || 'shiller.csv',
   },
 };
-
-// Validate required config
-if (!config.polygonApiKey) {
-  throw new Error('POLYGON_API_KEY environment variable is required');
-}
 
 export default config;
