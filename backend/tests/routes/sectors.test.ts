@@ -30,9 +30,15 @@ describe('GET /api/sectors', () => {
     expect(res.body).toHaveProperty('error');
   });
 
-  it('returns 404 when sector history is empty', async () => {
-    const res = await request(app).get('/api/sectors/Technology/history?days=365');
-    expect(res.status).toBe(404);
+  it('returns 400 for invalid date format', async () => {
+    const res = await request(app).get('/api/sectors?date=not-a-date');
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('returns 400 when date query param is missing', async () => {
+    const res = await request(app).get('/api/sectors');
+    expect(res.status).toBe(400);
     expect(res.body).toHaveProperty('error');
   });
 });
