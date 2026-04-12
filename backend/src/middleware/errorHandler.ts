@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 
 export const errorHandler = (err: Error & { statusCode?: number }, req: Request, res: Response, _next: NextFunction) => {
   const statusCode = err.statusCode || 500;
@@ -9,6 +10,6 @@ export const errorHandler = (err: Error & { statusCode?: number }, req: Request,
 
   res.status(statusCode).json({
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(config.nodeEnv === 'development' && { stack: err.stack }),
   });
 };

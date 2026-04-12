@@ -44,7 +44,7 @@ export default function KpiHeader({ sectors }: KpiHeaderProps) {
           {isLoading ? '—' : latestCape !== null ? latestCape.toFixed(1) : '—'}
         </Metric>
         <Text className="mt-1 text-tremor-content-subtle">10-Year Rolling Average</Text>
-        {!isLoading && latestCape && peData && (
+        {!isLoading && latestCape !== null && peData && (
           <Flex className="mt-2" justifyContent="start">
             <BadgeDelta deltaType={latestCape > peData.stats.median ? 'increase' : 'decrease'}>
               vs {peData.stats.median.toFixed(1)} median

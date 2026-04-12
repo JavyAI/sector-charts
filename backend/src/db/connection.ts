@@ -1,11 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { config } from '../config.js';
 import { createSchema } from './schema.js';
 import { logger } from '../logger.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let db: Database.Database | null = null;
 
