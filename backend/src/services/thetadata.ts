@@ -2,7 +2,10 @@ import axios from 'axios';
 import { getDatabase } from '../db/connection.js';
 import { logger } from '../logger.js';
 
-const THETADATA_URL = process.env.THETADATA_URL || 'http://127.0.0.1:25503';
+// Default to production Railway Theta Terminal so deploys work online even if
+// THETADATA_URL env var is accidentally unset. Local dev must explicitly set
+// THETADATA_URL=http://127.0.0.1:25503 to override.
+const THETADATA_URL = process.env.THETADATA_URL || 'https://theta-terminal-v3-production-132e.up.railway.app';
 const REQUEST_TIMEOUT_MS = 10_000;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 200;
